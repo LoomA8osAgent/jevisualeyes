@@ -60,6 +60,8 @@ export function App(){
       {detail?.project&&<span className={`badge ${detail.project.generation.provenance==='fixture'?'fixture':'live'}`}>
         {detail.project.generation.provenance}</span>}
       <div className="spacer"/>
+      <a className="howlink" href="https://github.com/cocktailpeanut/jevthoven/blob/main/docs/09_DECISION_MENUS.md"
+        target="_blank" rel="noopener noreferrer">How it works</a>
       {screen!=='home'&&<button onClick={()=>{engineRef.current!.stop();setScreen('home');setDetail(null);}}>Projects</button>}
       <button onClick={()=>setSettingsOpen(true)}>Settings</button>
     </div>

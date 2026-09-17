@@ -38,6 +38,9 @@ textarea.prompt{width:100%;min-height:110px;resize:vertical;font-size:15px}
 .topbar .title{font-weight:600}
 .topbar .logo{height:32px;width:32px;border-radius:6px;display:block}
 .topbar .spacer{flex:1}
+.topbar .howlink{background:var(--panel2);border:1px solid var(--line);color:var(--text);
+  border-radius:6px;padding:6px 12px;font-size:13px;text-decoration:none;cursor:pointer}
+.topbar .howlink:hover{border-color:var(--accent);text-decoration:none}
 .kv{color:var(--dim);font-size:12px}
 .kv b{color:var(--text);font-weight:600}
 .transport{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--line)}
