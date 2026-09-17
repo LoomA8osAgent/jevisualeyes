@@ -1,0 +1,343 @@
+{
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": "jev-music.edit.v1"
+    },
+    "commandId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+    },
+    "baseRevisionId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+    },
+    "instruction": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "operation": {
+      "enum": [
+        "regenerate",
+        "setTempo",
+        "setInstrument",
+        "transpose",
+        "setTrackGain",
+        "setMute",
+        "setLocks",
+        "duplicateRegion"
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "trackIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true
+        },
+        "startTick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "endTick": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "trackIds",
+        "startTick",
+        "endTick"
+      ],
+      "additionalProperties": false
+    },
+    "parameters": {
+      "type": "object"
+    },
+    "lockPolicy": {
+      "const": "preserve"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "commandId",
+    "baseRevisionId",
+    "instruction",
+    "operation",
+    "scope",
+    "parameters",
+    "lockPolicy"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "regenerate"
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "variation": {
+                "enum": [
+                  "less",
+                  "same",
+                  "more"
+                ]
+              },
+              "preserveTrackIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                },
+                "maxItems": 4,
+                "uniqueItems": true
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "setTempo"
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "bpm": {
+                "type": "integer",
+                "minimum": 40,
+                "maximum": 220
+              }
+            },
+            "required": [
+              "bpm"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "setInstrument"
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "instrumentId": {
+                "enum": [
+                  "electric_keys",
+                  "soft_keys",
+                  "organ",
+                  "pluck",
+                  "round_bass",
+                  "synth_bass",
+                  "soft_lead",
+                  "bright_lead",
+                  "drum_kit"
+                ]
+              }
+            },
+            "required": [
+              "instrumentId"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "setTrackGain"
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "volumeDb": {
+                "type": "number",
+                "minimum": -60,
+                "maximum": 6
+              }
+            },
+            "required": [
+              "volumeDb"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "setMute"
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "muted": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "muted"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "setLocks"
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "locked": {
+                "type": "boolean"
+              },
+              "noteIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                },
+                "maxItems": 50000,
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "locked"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "transpose"
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "semitones": {
+                "type": "integer",
+                "minimum": -48,
+                "maximum": 48
+              }
+            },
+            "required": [
+              "semitones"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "duplicateRegion"
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "destinationStartTick": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "destinationStartTick"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "jev-music.edit.v1",
+  "commandId": "example-edit-1",
+  "baseRevisionId": "fixture-r1",
+  "instruction": "Keep the melody exactly; make the bass less repetitive.",
+  "operation": "regenerate",
+  "scope": {
+    "trackIds": [
+      "bass"
+    ],
+    "startTick": 0,
+    "endTick": 7680
+  },
+  "parameters": {
+    "variation": "more",
+    "preserveTrackIds": [
+      "lead",
+      "harmony",
+      "drums"
+    ]
+  },
+  "lockPolicy": "preserve"
+}

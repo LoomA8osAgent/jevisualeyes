@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "jev-music.receipt.v1",
+  "id": "synthetic-d1",
+  "jobId": "synthetic-job",
+  "decisionIndex": 0,
+  "attemptIndex": 1,
+  "requestHash": "a9bae1d2cccde7988b8166b38380d5ad8a14b0a91625d8ae726dbc5a6a6b91e5",
+  "candidateHash": "0c67fc24ad0cc3bfe293d51934d9793e864d4a72ff1eee930bedcdf7536e72c2",
+  "model": "jev-latest",
+  "questionId": "next_event",
+  "providerChoice": "N_72_240",
+  "selectedChoice": "N_72_240",
+  "selectionMode": "model",
+  "seedBefore": 123456789,
+  "seedAfter": 123456789,
+  "usage": {
+    "inputTokens": 1234,
+    "outputTokens": 123,
+    "complete": true
+  },
+  "latencyMs": 0,
+  "provenance": "synthetic"
+}

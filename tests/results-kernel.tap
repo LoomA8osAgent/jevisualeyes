@@ -1,0 +1,298 @@
+TAP version 13
+# Subtest: time: correct PPQ and supported bar sizes
+ok 1 - time: correct PPQ and supported bar sizes
+  ---
+  duration_ms: 0.946458
+  type: 'test'
+  ...
+# Subtest: time: unsupported Cartesian meter pair is rejected
+ok 2 - time: unsupported Cartesian meter pair is rejected
+  ---
+  duration_ms: 0.25703
+  type: 'test'
+  ...
+# Subtest: swing: straight is exact identity
+ok 3 - swing: straight is exact identity
+  ---
+  duration_ms: 0.519807
+  type: 'test'
+  ...
+# Subtest: swing: shuffle has expected midpoint and preserves bar boundary
+ok 4 - swing: shuffle has expected midpoint and preserves bar boundary
+  ---
+  duration_ms: 0.096382
+  type: 'test'
+  ...
+# Subtest: swing: endpoints, not raw duration, determine performed gate
+ok 5 - swing: endpoints, not raw duration, determine performed gate
+  ---
+  duration_ms: 0.163481
+  type: 'test'
+  ...
+# Subtest: swing: rejects negative and fractional tick and invalid ratio
+ok 6 - swing: rejects negative and fractional tick and invalid ratio
+  ---
+  duration_ms: 0.173206
+  type: 'test'
+  ...
+# Subtest: palette: 24-pitch chromatic window clamps to instrument range
+ok 7 - palette: 24-pitch chromatic window clamps to instrument range
+  ---
+  duration_ms: 0.655068
+  type: 'test'
+  ...
+# Subtest: palette: complete maximum yields exactly 208 options
+ok 8 - palette: complete maximum yields exactly 208 options
+  ---
+  duration_ms: 1.145441
+  type: 'test'
+  ...
+# Subtest: palette: every candidate stays within current boundary
+ok 9 - palette: every candidate stays within current boundary
+  ---
+  duration_ms: 0.464386
+  type: 'test'
+  ...
+# Subtest: palette: off-grid residual is explicit, never zero
+ok 10 - palette: off-grid residual is explicit, never zero
+  ---
+  duration_ms: 0.380632
+  type: 'test'
+  ...
+# Subtest: palette: duplicate voicings and oversized palette are rejected
+ok 11 - palette: duplicate voicings and oversized palette are rejected
+  ---
+  duration_ms: 1.04939
+  type: 'test'
+  ...
+# Subtest: palette: a chord is one concrete multiple-note option
+ok 12 - palette: a chord is one concrete multiple-note option
+  ---
+  duration_ms: 0.160437
+  type: 'test'
+  ...
+# Subtest: palette: percussion gate is bounded and cannot hold
+ok 13 - palette: percussion gate is bounded and cannot hold
+  ---
+  duration_ms: 0.140277
+  type: 'test'
+  ...
+# Subtest: descriptions: pitch and duration are both explicit
+ok 14 - descriptions: pitch and duration are both explicit
+  ---
+  duration_ms: 0.281165
+  type: 'test'
+  ...
+# Subtest: provider: complete synthetic fixture validates
+ok 15 - provider: complete synthetic fixture validates
+  ---
+  duration_ms: 0.916634
+  type: 'test'
+  ...
+# Subtest: provider: unknown selected key is rejected
+ok 16 - provider: unknown selected key is rejected
+  ---
+  duration_ms: 0.330578
+  type: 'test'
+  ...
+# Subtest: provider: missing probability key is rejected
+ok 17 - provider: missing probability key is rejected
+  ---
+  duration_ms: 0.251742
+  type: 'test'
+  ...
+# Subtest: provider: negative/nonfinite/unnormalized distributions rejected
+ok 18 - provider: negative/nonfinite/unnormalized distributions rejected
+  ---
+  duration_ms: 0.423225
+  type: 'test'
+  ...
+# Subtest: provider: nonmaximum reported choice is rejected
+ok 19 - provider: nonmaximum reported choice is rejected
+  ---
+  duration_ms: 0.258932
+  type: 'test'
+  ...
+# Subtest: sampling: zero temperature tie-break is stable
+ok 20 - sampling: zero temperature tie-break is stable
+  ---
+  duration_ms: 0.240044
+  type: 'test'
+  ...
+# Subtest: sampling: model mode uses provider choice without advancing PRNG
+ok 21 - sampling: model mode uses provider choice without advancing PRNG
+  ---
+  duration_ms: 0.097224
+  type: 'test'
+  ...
+# Subtest: sampling: same saved distribution and seed replay exactly
+ok 22 - sampling: same saved distribution and seed replay exactly
+  ---
+  duration_ms: 1.038694
+  type: 'test'
+  ...
+# Subtest: sampling: seed zero has defined nonzero normalization
+ok 23 - sampling: seed zero has defined nonzero normalization
+  ---
+  duration_ms: 0.084284
+  type: 'test'
+  ...
+# Subtest: canonical JSON: object key order irrelevant, array order significant
+ok 24 - canonical JSON: object key order irrelevant, array order significant
+  ---
+  duration_ms: 0.480399
+  type: 'test'
+  ...
+# Subtest: canonical JSON: unsafe keys, cycles, nonfinite values rejected
+ok 25 - canonical JSON: unsafe keys, cycles, nonfinite values rejected
+  ---
+  duration_ms: 0.208358
+  type: 'test'
+  ...
+# Subtest: events: note appends and advances without mutating input
+ok 26 - events: note appends and advances without mutating input
+  ---
+  duration_ms: 0.271782
+  type: 'test'
+  ...
+# Subtest: events: rest advances timeline without creating a MIDI note
+ok 27 - events: rest advances timeline without creating a MIDI note
+  ---
+  duration_ms: 0.093608
+  type: 'test'
+  ...
+# Subtest: events: hold extends sound without retrigger and adds provenance
+ok 28 - events: hold extends sound without retrigger and adds provenance
+  ---
+  duration_ms: 1.240662
+  type: 'test'
+  ...
+# Subtest: events: hold cannot target a locked or no-longer-sustained note
+ok 29 - events: hold cannot target a locked or no-longer-sustained note
+  ---
+  duration_ms: 0.229169
+  type: 'test'
+  ...
+# Subtest: events: boundary overrun and duplicate note commit rejected
+ok 30 - events: boundary overrun and duplicate note commit rejected
+  ---
+  duration_ms: 0.246113
+  type: 'test'
+  ...
+# Subtest: scheduler: earliest cursor then documented role order
+ok 31 - scheduler: earliest cursor then documented role order
+  ---
+  duration_ms: 0.378399
+  type: 'test'
+  ...
+# Subtest: commit guard: late cancelled/stale/duplicate logical results denied
+ok 32 - commit guard: late cancelled/stale/duplicate logical results denied
+  ---
+  duration_ms: 0.125646
+  type: 'test'
+  ...
+# Subtest: locks: selected editable lane may change while all others remain exact
+ok 33 - locks: selected editable lane may change while all others remain exact
+  ---
+  duration_ms: 2.349099
+  type: 'test'
+  ...
+# Subtest: locks: locked lane rejects edits and added notes
+ok 34 - locks: locked lane rejects edits and added notes
+  ---
+  duration_ms: 1.757546
+  type: 'test'
+  ...
+# Subtest: locks: note crossing scope boundary is immutable
+ok 35 - locks: note crossing scope boundary is immutable
+  ---
+  duration_ms: 0.652714
+  type: 'test'
+  ...
+# Subtest: locks: unselected notes cannot be deleted
+ok 36 - locks: unselected notes cannot be deleted
+  ---
+  duration_ms: 0.556662
+  type: 'test'
+  ...
+# Subtest: project: hand-authored fixture passes semantic checks
+ok 37 - project: hand-authored fixture passes semantic checks
+  ---
+  duration_ms: 1.329714
+  type: 'test'
+  ...
+# Subtest: project: duplicate IDs, out-of-bounds time, wrong drum channel rejected
+ok 38 - project: duplicate IDs, out-of-bounds time, wrong drum channel rejected
+  ---
+  duration_ms: 3.170371
+  type: 'test'
+  ...
+# Subtest: MIDI: independent header parser confirms format, PPQ and track count
+ok 39 - MIDI: independent header parser confirms format, PPQ and track count
+  ---
+  duration_ms: 2.308609
+  type: 'test'
+  ...
+# Subtest: MIDI: note count and performed onsets match canonical score
+ok 40 - MIDI: note count and performed onsets match canonical score
+  ---
+  duration_ms: 1.658519
+  type: 'test'
+  ...
+# Subtest: MIDI: same-tick note-off precedes repeated note-on
+ok 41 - MIDI: same-tick note-off precedes repeated note-on
+  ---
+  duration_ms: 0.552696
+  type: 'test'
+  ...
+# Subtest: MIDI: tempo/meter metadata and percussion channel explicit
+ok 42 - MIDI: tempo/meter metadata and percussion channel explicit
+  ---
+  duration_ms: 0.882874
+  type: 'test'
+  ...
+# Subtest: MIDI: oracle bytes equal the packaged hand-authored file
+ok 43 - MIDI: oracle bytes equal the packaged hand-authored file
+  ---
+  duration_ms: 1.463161
+  type: 'test'
+  ...
+# Subtest: MIDI: truncated input rejected by oracle parser
+ok 44 - MIDI: truncated input rejected by oracle parser
+  ---
+  duration_ms: 0.905066
+  type: 'test'
+  ...
+# Subtest: receipts: fixture hashes match actual request and candidate data
+ok 45 - receipts: fixture hashes match actual request and candidate data
+  ---
+  duration_ms: 0.648958
+  type: 'test'
+  ...
+# Subtest: locks: editable note cannot be moved across the selected boundary
+ok 46 - locks: editable note cannot be moved across the selected boundary
+  ---
+  duration_ms: 0.950204
+  type: 'test'
+  ...
+# Subtest: events: duplicate hold receipt cannot extend a sound twice
+ok 47 - events: duplicate hold receipt cannot extend a sound twice
+  ---
+  duration_ms: 0.155941
+  type: 'test'
+  ...
+# Subtest: project: same-pitch overlapping manual notes are rejected
+ok 48 - project: same-pitch overlapping manual notes are rejected
+  ---
+  duration_ms: 0.781895
+  type: 'test'
+  ...
+1..48
+# tests 48
+# suites 0
+# pass 48
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 110.028991

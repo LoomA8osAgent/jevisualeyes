@@ -1,0 +1,121 @@
+{
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": "jev-music.receipt.v1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+    },
+    "jobId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+    },
+    "decisionIndex": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "attemptIndex": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "requestHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "candidateHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "questionId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+    },
+    "providerChoice": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "selectedChoice": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "selectionMode": {
+      "enum": [
+        "model",
+        "sample"
+      ]
+    },
+    "seedBefore": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "seedAfter": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "usage": {
+      "type": "object",
+      "properties": {
+        "inputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "complete": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "inputTokens",
+        "outputTokens",
+        "complete"
+      ],
+      "additionalProperties": false
+    },
+    "latencyMs": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 3600000
+    },
+    "provenance": {
+      "enum": [
+        "live",
+        "synthetic"
+      ]
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "jobId",
+    "decisionIndex",
+    "attemptIndex",
+    "requestHash",
+    "candidateHash",
+    "model",
+    "questionId",
+    "providerChoice",
+    "selectedChoice",
+    "selectionMode",
+    "seedBefore",
+    "seedAfter",
+    "usage",
+    "latencyMs",
+    "provenance"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

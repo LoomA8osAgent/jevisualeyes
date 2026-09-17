@@ -1,0 +1,60 @@
+{
+  "type": "object",
+  "properties": {
+    "model": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "state": {
+      "type": [
+        "string",
+        "object",
+        "array"
+      ]
+    },
+    "questions": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "const": "choice"
+          },
+          "instructions": {
+            "type": [
+              "string",
+              "object",
+              "array"
+            ]
+          },
+          "criteria": {
+            "type": "object",
+            "minProperties": 2,
+            "maxProperties": 255,
+            "additionalProperties": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "required": [
+          "type",
+          "instructions",
+          "criteria"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "model",
+    "state",
+    "questions"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}
