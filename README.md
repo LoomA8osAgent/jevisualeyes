@@ -6,6 +6,12 @@ Prompt-first symbolic-music studio. Describe music in one sentence — *"a wistf
 
 **There is no offline composer, audio model, or hidden song library.** Every note traces to a persisted Jev decision (or a labeled fixture/manual edit).
 
+
+
+https://github.com/user-attachments/assets/176c69e4-501e-4b71-8517-957cc692882a
+
+
+
 ## What it does
 
 - One natural-language prompt → plan (meter, tempo, form, lanes) → instrument choice → harmony → phrase intent → per-lane groove parameters → complete-bar patterns, one Jev `Choice` call each; code renders every pick into notes.
