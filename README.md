@@ -25,12 +25,7 @@ Prompt-first symbolic-music studio. Describe music in one sentence — *"a wistf
 
 ### Pinokio (recommended)
 
-This folder is a Pinokio app launcher — install it inside Pinokio, then:
-
-1. **Install** — `npm install` + web build inside `app/`
-2. **Start** — serves the UI on a free local port; click **Open Jevthoven**
-3. Open **Settings** in the app to paste your `TYPESAFE_API_KEY` (stored server-side at `app/data/settings.json`, never sent to the browser) or switch to **fixture mode**.
-4. **Update** pulls the repo and rebuilds. **Reset** removes dependencies (`app/node_modules`, build output); your projects in `app/data/` are kept — delete them from the Projects list if you want them gone.
+[1-click install](https://pinokio.co/apps/github-com-cocktailpeanut-jevthoven)
 
 ### Manually
 
