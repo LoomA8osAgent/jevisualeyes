@@ -1,13 +1,20 @@
-# Jevthoven
+# jevisualeyes
 
 ![How jevisualeyes composes a preset: tag → axis coordinate → what moves → sampled complete looks → one pick per stack → motion binds → preset + receipts → repeat / regenerate unlocked](docs/decision-pipeline.svg)
+
+**Prompt-first preset composer for fragment shaders.** Describe a look in one sentence — *"slow organic, cool palette, two folds"* — and a decision model (not a text generator) picks every choice from menus the code built: which axes the look sits on, which of the sampled complete looks each stack takes, what moves and how. Code renders the picks into a preset for an ISF fragment-shader record and its control stacks (ops · raymarch/shade ops · layers · FX · modulator binds). Every knob in the result traces to a persisted decision receipt, a labelled fixture, or a manual edit.
+
+**Local model first.** The default provider is an open-weight decision model running on this machine over the `/v1/systemone` wire on loopback — no key, no network, no telemetry ([Laya](https://huggingface.co/convaiinnovations/laya) via [von](https://github.com/wfzyx/von) today). TypeSafe's Jev is an optional remote provider, never a requirement. The open reproductions of Jev are tracked here: **https://huggingface.co/spaces/multimodalart/jev-reproductions-tracker** — trained scoring heads (calibrated) are the only class that may arm a threshold; logit-reading LLM replicas serve the argmax only.
+
+**Status: complete rewrite in progress.** This repository is an MIT fork of [cocktailpeanut/jevthoven](https://github.com/cocktailpeanut/jevthoven) (a music composer on the same principle). The composer engine survives — one decision loop, code-enumerated complete candidates, one Choice per unit, receipts, fixture provider, locks + regenerate-unlocked, resumable jobs, the provider adapter. Every music/MIDI module, the React/Tone.js UI and the Pinokio launcher are being culled; the domain becomes the A8os shader library. Plan: `roadmap/jevisualeyes-rework.md` and the judgment-layer spec `specs/ai/jev.md` in the A8os repo. Until the rewrite lands, everything below this line is the upstream Jevthoven README and describes the MUSIC tool, not this one.
+
+---
+
+## Upstream README (Jevthoven — being replaced)
 
 Prompt-first symbolic-music studio. Describe music in one sentence — *"a wistful 3/4 waltz, soft keys over round bass, light swing"* — and a live TypeSafe Jev model decides every musical unit, sequentially, with a bounded rolling context (recent bars, motif, harmony plan) resent each step. The result is an editable multitrack composition you can play, reshape, and export.
 
 **There is no offline composer, audio model, or hidden song library.** Every note traces to a persisted Jev decision (or a labeled fixture/manual edit).
-
-
-
 
 ## What it does
 
