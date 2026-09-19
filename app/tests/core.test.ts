@@ -1,69 +1,204 @@
+/** The kernel suite, trimmed to the modules that survived the domain swap
+ *  (`roadmap/jevisualeyes-rework.md` §1.1) and extended to the two other primitives.
+ *
+ *  The canon / hash / selection tests are UPSTREAM'S, unchanged — they are the reason
+ *  those files were kept verbatim, and they are what proves the strip did not touch them.
+ *  The validation tests are rewritten around the three primitives and the two ruled
+ *  divergences (§1.5): strict argmax, and a FIXED 1e-3 sum tolerance.
+ */
 import {test, assert} from 'vitest';
-import {readFileSync} from 'node:fs';
-import {fileURLToPath} from 'node:url';
 import {canonicalJSON} from '../core/canon.js';
 import {hashJSON} from '../core/hash.js';
-import {PPQ, STRAIGHT_SPANS, barTicks, warpTick, performedNote} from '../core/time.js';
-import {pitchWindow, legalSpans, buildCandidates, criteriaFor} from '../core/candidates.js';
-import {validateChoiceResponse} from '../core/validate.js';
+import {validateAnswer, validateResponse, candidateKeys, SUM_TOLERANCE} from '../core/validate.js';
 import {nextRandom, selectChoice} from '../core/selection.js';
-import {applyEvent, nextLane, canCommit, assertPreserved, validateProject} from '../core/score.js';
-import {encodeSMF, parseSMF} from '../core/midi.js';
-import type {Note, ProjectFile, ChoiceRequest} from '../core/types.js';
+import {AXES, STACK_AXES, STACKS, RATE_LADDER, ROSTER_VERSION,
+  axisQuestionId, parseAxisQuestionId, parseLookQuestionId} from '../core/axes.js';
+import {buildAxisRequest, buildLookRequest, buildMotionRequest} from '../core/requests.js';
+import type {ChoiceQuestion, DecisionRequest, DecisionResponse, LookCandidate, NoulQuestion,
+  ScoreQuestion} from '../core/types.js';
 
-const load=(n:string)=>JSON.parse(readFileSync(fileURLToPath(new URL('../fixtures/'+n,import.meta.url)),'utf8'));
-const base=load('hand-authored-project.json') as ProjectFile,
-  request=load('jev-request.json') as ChoiceRequest,
-  response=load('jev-response.synthetic.json');
 const copy=(x:any)=>structuredClone(x);
-const note=(id:string,start=0,len=480,pitch=69,locked=false):Note=>({id,startTick:start,durationTicks:len,midi:pitch,velocity:84,locked,source:{kind:'fixture',decisionIds:[],parentNoteIds:[]}});
-const scope={trackIds:['bass'],startTick:0,endTick:7680};
+const record={recordId:'waves/ocean',situation:'an open sea surface',family:'waves',
+  tag:'motion:driving density:busy contrast:hard'};
 
-test('time: correct PPQ and supported bar sizes',()=>{assert.equal(PPQ,480);assert.equal(barTicks({numerator:4,denominator:4}),1920);assert.equal(barTicks({numerator:3,denominator:4}),1440);assert.equal(barTicks({numerator:6,denominator:8}),1440);});
-test('time: unsupported Cartesian meter pair is rejected',()=>assert.throws(()=>barTicks({numerator:4,denominator:8})));
-test('swing: straight is exact identity',()=>{for(let t=0;t<10000;t+=7)assert.equal(warpTick(t,.5),t);});
-test('swing: shuffle has expected midpoint and preserves bar boundary',()=>{assert.equal(warpTick(240,2/3),320);assert.equal(warpTick(480,2/3),480);assert.equal(warpTick(1920,2/3),1920);});
-test('swing: endpoints, not raw duration, determine performed gate',()=>{const p=performedNote(note('x',240,480),2/3);assert.equal(p.startTick,320);assert.equal(p.durationTicks,480);});
-test('swing: rejects negative and fractional tick and invalid ratio',()=>{for(const v of [-1,.5,NaN])assert.throws(()=>warpTick(v));assert.throws(()=>warpTick(1,.9));});
-test('palette: 24-pitch chromatic window clamps to instrument range',()=>{assert.deepEqual(pitchWindow(0,0,127),Array.from({length:24},(_,i)=>i));assert.equal(pitchWindow(127,0,127).at(-1),127);assert.deepEqual(pitchWindow(65,60,64),[60,61,62,63,64]);});
-test('palette: complete maximum yields exactly 208 options',()=>{const cs=buildCandidates({pitches:pitchWindow(72,0,127),remaining:1920,holdNoteIds:['prev']});assert.equal(cs.length,208);assert.equal(new Set(cs.map(c=>c.id)).size,208);});
-test('palette: every candidate stays within current boundary',()=>{const cs=buildCandidates({pitches:[60,61],remaining:240});assert.ok(cs.every(c=>c.stepTicks>0&&c.stepTicks<=240));});
-test('palette: off-grid residual is explicit, never zero',()=>{assert.deepEqual(legalSpans(STRAIGHT_SPANS,50),[50]);assert.ok(legalSpans(STRAIGHT_SPANS,250).includes(250));assert.throws(()=>legalSpans(STRAIGHT_SPANS,0));});
-test('palette: duplicate voicings and oversized palette are rejected',()=>{assert.throws(()=>buildCandidates({pitches:[60,60],remaining:480}));assert.throws(()=>buildCandidates({pitches:Array.from({length:25},(_,i)=>i),remaining:1920}));});
-test('palette: a chord is one concrete multiple-note option',()=>{const cs=buildCandidates({pitches:[[60,64,67]],spans:[480],remaining:480});assert.equal(cs[0].id,'N_60_64_67_480');assert.deepEqual(cs[0].pitches,[60,64,67]);});
-test('palette: percussion gate is bounded and cannot hold',()=>{const cs=buildCandidates({pitches:[[36,42]],spans:[240],remaining:240,percussion:true});assert.equal(cs[0].gateTicks,60);assert.throws(()=>buildCandidates({pitches:[36],remaining:480,percussion:true,holdNoteIds:['p']}));});
-test('descriptions: pitch and duration are both explicit',()=>{const cs=buildCandidates({pitches:[69],spans:[240],remaining:240});const d=criteriaFor(cs,480);assert.match(d.N_69_240,/A4/);assert.match(d.N_69_240,/advance 240/);});
-test('provider: complete synthetic fixture validates',()=>{const a=validateChoiceResponse(response,request);assert.equal(a.choice,'N_72_240');});
-test('provider: unknown selected key is rejected',()=>{const r=copy(response);r.answers.next_event.choice='invented';assert.throws(()=>validateChoiceResponse(r,request));});
-test('provider: missing probability key is rejected',()=>{const r=copy(response);delete r.answers.next_event.probabilities.R_120;assert.throws(()=>validateChoiceResponse(r,request));});
-test('provider: negative/nonfinite/unnormalized distributions rejected',()=>{for(const v of [-.1,NaN,10]){const r=copy(response);r.answers.next_event.probabilities.N_72_240=v;assert.throws(()=>validateChoiceResponse(r,request));}});
-test('provider: nonmaximum reported choice is accepted (live API returns sampled/near-max choices)',()=>{const r=copy(response);r.answers.next_event.choice='R_120';assert.equal(validateChoiceResponse(r,request).choice,'R_120');});
-test('sampling: zero temperature tie-break is stable',()=>{const a={type:'choice' as const,choice:'b',probabilities:{b:.5,a:.5},confidence:.5};assert.equal(selectChoice(a,{mode:'sample',temperature:0,seed:2}).selected,'a');});
-test('sampling: model mode uses provider choice without advancing PRNG',()=>{assert.deepEqual(selectChoice({type:'choice' as const,choice:'b',probabilities:{a:.5,b:.5},confidence:1},{mode:'model',seed:7}),{selected:'b',seed:7});});
-test('sampling: same saved distribution and seed replay exactly',()=>{const a={type:'choice' as const,choice:'a',probabilities:{a:.7,b:.3,c:0},confidence:1};let s1=77,s2=77;for(let i=0;i<100;i++){const x=selectChoice(a,{mode:'sample',seed:s1});const y=selectChoice(a,{mode:'sample',seed:s2});assert.deepEqual(x,y);assert.notEqual(x.selected,'c');s1=x.seed;s2=y.seed;}});
-test('sampling: seed zero has defined nonzero normalization',()=>{assert.deepEqual(nextRandom(0),nextRandom(0));assert.notEqual(nextRandom(0).seed,0);});
-test('canonical JSON: object key order irrelevant, array order significant',()=>{assert.equal(hashJSON({a:1,b:2}),hashJSON({b:2,a:1}));assert.notEqual(hashJSON([1,2]),hashJSON([2,1]));});
-test('canonical JSON: unsafe keys, cycles, nonfinite values rejected',()=>{assert.throws(()=>canonicalJSON(JSON.parse('{"__proto__":1}')));assert.throws(()=>canonicalJSON({x:Infinity}));const a:any={};a.a=a;assert.throws(()=>canonicalJSON(a));});
-test('events: note appends and advances without mutating input',()=>{const ns:Note[]=[];const c=buildCandidates({pitches:[69],spans:[480],remaining:480})[0];const r=applyEvent(ns,0,c,'d1');assert.equal(ns.length,0);assert.equal(r.notes[0].midi,69);assert.equal(r.cursorTick,480);});
-test('events: rest advances timeline without creating a MIDI note',()=>{const r=applyEvent([],0,{id:'R_240',kind:'rest',pitches:[],stepTicks:240,gateTicks:0},'d1');assert.equal(r.notes.length,0);assert.equal(r.cursorTick,240);});
-test('events: hold extends sound without retrigger and adds provenance',()=>{const r=applyEvent([note('n')],480,{id:'H_240',kind:'hold',pitches:[],stepTicks:240,gateTicks:240,targetNoteIds:['n']},'d2');assert.equal(r.notes.length,1);assert.equal(r.notes[0].durationTicks,720);assert.deepEqual(r.notes[0].source.decisionIds,['d2']);});
-test('events: hold cannot target a locked or no-longer-sustained note',()=>{for(const n of [note('n',0,480,69,true),note('n',0,240)])assert.throws(()=>applyEvent([n],480,{id:'H_240',kind:'hold',pitches:[],stepTicks:240,gateTicks:240,targetNoteIds:['n']},'d2'));});
-test('events: boundary overrun and duplicate note commit rejected',()=>{const c=buildCandidates({pitches:[69],spans:[480],remaining:480})[0];assert.throws(()=>applyEvent([],0,c,'d1',{boundaryTick:240}));const a=applyEvent([],0,c,'d1');assert.throws(()=>applyEvent(a.notes,480,c,'d1'));});
-test('scheduler: earliest cursor then documented role order',()=>{const roles:any={a:'lead',b:'bass',h:'harmony',d:'drums'};assert.equal(nextLane({a:0,b:0,h:0,d:0},roles),'d');assert.equal(nextLane({a:0,b:480,h:480,d:480},roles),'a');});
-test('commit guard: late cancelled/stale/duplicate logical results denied',()=>{const p={epoch:1,decisionIndex:2};assert.equal(canCommit({status:'composing',epoch:1,decisionIndex:2},p),true);for(const j of [{status:'cancelled',epoch:1,decisionIndex:2},{status:'composing',epoch:2,decisionIndex:2},{status:'composing',epoch:1,decisionIndex:3}])assert.equal(canCommit(j,p),false);});
-test('locks: selected editable lane may change while all others remain exact',()=>{const after=copy(base);after.tracks[1].notes[0].midi++;assert.equal(assertPreserved(base,after,scope),true);});
-test('locks: locked lane rejects edits and added notes',()=>{const before=copy(base);before.tracks[1].locked=true;const after=copy(before);after.tracks[1].notes.push(note('new',0,240));assert.throws(()=>assertPreserved(before,after,scope));});
-test('locks: note crossing scope boundary is immutable',()=>{const after=copy(base);after.tracks[1].notes[0].durationTicks=200;assert.throws(()=>assertPreserved(base,after,{trackIds:['bass'],startTick:100,endTick:7680}));});
-test('locks: unselected notes cannot be deleted',()=>{const after=copy(base);after.tracks[0].notes.pop();assert.throws(()=>assertPreserved(base,after,scope));});
-test('project: hand-authored fixture passes semantic checks',()=>assert.equal(validateProject(base),true));
-test('project: duplicate IDs, out-of-bounds time, wrong drum channel rejected',()=>{const a=copy(base);a.tracks[1].notes[0].id=a.tracks[0].notes[0].id;assert.throws(()=>validateProject(a));const b=copy(base);b.tracks[0].notes[0].durationTicks=99999;assert.throws(()=>validateProject(b));const c=copy(base);c.tracks[3].channel=4;assert.throws(()=>validateProject(c));});
-test('MIDI: independent header parser confirms format, PPQ and track count',()=>{const m=parseSMF(encodeSMF(base));assert.equal(m.format,1);assert.equal(m.ppq,480);assert.equal(m.tracks.length,5);});
-test('MIDI: note count and performed onsets match canonical score',()=>{const m=parseSMF(encodeSMF(base));for(let i=0;i<base.tracks.length;i++){const ons=m.tracks[i+1].filter(e=>e.type==='on');const expected=base.tracks[i].notes.map((n:Note)=>performedNote(n,base.swing.ratio)).sort((a,b)=>a.startTick-b.startTick);assert.equal(ons.length,expected.length);assert.deepEqual(ons.map(e=>e.tick),expected.map(n=>n.startTick));}});
-test('MIDI: same-tick note-off precedes repeated note-on',()=>{const p=copy(base);p.tracks=p.tracks.slice(0,1);p.tracks[0].notes=[note('a',0,480),note('b',480,480)];const events=parseSMF(encodeSMF(p)).tracks[1].filter(e=>e.tick===480&&e.midi===69);assert.deepEqual(events.map(e=>e.type),['off','on']);});
-test('MIDI: tempo/meter metadata and percussion channel explicit',()=>{const m=parseSMF(encodeSMF(base));assert.ok(m.tracks[0].some(e=>e.metaType===81));assert.deepEqual(m.tracks[0].find(e=>e.metaType===88)!.data,[4,2,24,8]);assert.ok(m.tracks[4].filter(e=>e.type==='on').every(e=>e.channel===9));});
-test('MIDI: oracle bytes equal the packaged hand-authored file',()=>{const b=readFileSync(fileURLToPath(new URL('../fixtures/hand-authored-example.mid',import.meta.url)));assert.deepEqual(encodeSMF(base),b);});
-test('MIDI: truncated input rejected by oracle parser',()=>assert.throws(()=>parseSMF(encodeSMF(base).subarray(0,30))));
-test('receipts: fixture hashes match actual request and candidate data',()=>{const r=load('decision-receipt.synthetic.json');assert.equal(r.requestHash,hashJSON(request));assert.equal(r.candidateHash,hashJSON(load('event-candidates.json')));assert.equal(r.provenance,'synthetic');});
-test('locks: editable note cannot be moved across the selected boundary',()=>{const after=copy(base);after.tracks[1].notes[0].startTick=2000;assert.throws(()=>assertPreserved(base,after,{trackIds:['bass'],startTick:0,endTick:1920}));});
-test('events: duplicate hold receipt cannot extend a sound twice',()=>{const c={id:'H_240',kind:'hold' as const,pitches:[],stepTicks:240,gateTicks:240,targetNoteIds:['n']};const a=applyEvent([note('n')],480,c,'d2');assert.throws(()=>applyEvent(a.notes,720,c,'d2'));});
-test('project: same-pitch overlapping manual notes are rejected',()=>{const p=copy(base);p.tracks[0].notes.push(note('overlap',100,240,69));assert.throws(()=>validateProject(p));});
+const choiceQ:ChoiceQuestion={type:'choice',instructions:'pick',criteria:{a:'A',b:'B',c:'C'}};
+const noulQ:NoulQuestion={type:'noul',instructions:'does it move'};
+const scoreQ:ScoreQuestion={type:'score',instructions:'how fast',criteria:['slow','medium','fast']};
+
+/* ── canon + hash (upstream, unchanged) ─────────────────────────────────────────── */
+
+test('canonical JSON: object key order irrelevant, array order significant',()=>{
+  assert.equal(hashJSON({a:1,b:2}),hashJSON({b:2,a:1}));
+  assert.notEqual(hashJSON([1,2]),hashJSON([2,1]));
+});
+test('canonical JSON: unsafe keys, cycles, nonfinite values rejected',()=>{
+  assert.throws(()=>canonicalJSON(JSON.parse('{"__proto__":1}')));
+  assert.throws(()=>canonicalJSON({x:Infinity}));
+  const a:any={};a.a=a;assert.throws(()=>canonicalJSON(a));
+});
+
+/* ── selection (upstream, unchanged) ────────────────────────────────────────────── */
+
+test('sampling: zero temperature tie-break is stable',()=>{
+  const a={type:'choice' as const,choice:'b',probabilities:{b:.5,a:.5},confidence:.5};
+  assert.equal(selectChoice(a,{mode:'sample',temperature:0,seed:2}).selected,'a');
+});
+test('sampling: model mode uses provider choice without advancing PRNG',()=>{
+  assert.deepEqual(selectChoice({type:'choice' as const,choice:'b',probabilities:{a:.5,b:.5},confidence:1},
+    {mode:'model',seed:7}),{selected:'b',seed:7});
+});
+test('sampling: same saved distribution and seed replay exactly',()=>{
+  const a={type:'choice' as const,choice:'a',probabilities:{a:.7,b:.3,c:0},confidence:1};
+  let s1=77,s2=77;
+  for(let i=0;i<100;i++){
+    const x=selectChoice(a,{mode:'sample',seed:s1}),y=selectChoice(a,{mode:'sample',seed:s2});
+    assert.deepEqual(x,y);assert.notEqual(x.selected,'c');s1=x.seed;s2=y.seed;
+  }
+});
+test('sampling: seed zero has defined nonzero normalization',()=>{
+  assert.deepEqual(nextRandom(0),nextRandom(0));assert.notEqual(nextRandom(0).seed,0);
+});
+
+/* ── validation: the three primitives (jev.md §10.1) ────────────────────────────── */
+
+const choiceAnswer=(choice='a')=>({type:'choice' as const,choice,
+  probabilities:{a:.7,b:.2,c:.1},confidence:.6});
+const scoreAnswer=()=>({type:'score' as const,score:1.3,
+  probabilities:{'0':.1,'1':.6,'2':.3},confidence:.5,
+  legend:{'0':'slow','1':'medium','2':'fast'}});
+
+test('validate: a complete choice answer validates and renormalizes',()=>{
+  const a=validateAnswer(choiceAnswer(),choiceQ) as any;
+  assert.equal(a.choice,'a');
+  assert.closeTo(Object.values(a.probabilities).reduce((x:any,y:any)=>x+y,0) as number,1,1e-12);
+});
+test('validate: a noul is a probability, and nothing else is accepted',()=>{
+  assert.equal((validateAnswer({type:'noul',noul:.93},noulQ) as any).noul,.93);
+  for(const v of [-0.1,1.1,NaN,'0.5'])
+    assert.throws(()=>validateAnswer({type:'noul',noul:v},noulQ));
+});
+test('validate: a score is an ORDINAL on the submitted ladder, with a full legend',()=>{
+  assert.equal((validateAnswer(scoreAnswer(),scoreQ) as any).score,1.3);
+  const over=copy(scoreAnswer());over.score=3;                       // ladder is [0,2]
+  assert.throws(()=>validateAnswer(over,scoreQ));
+  const short=copy(scoreAnswer());delete short.legend['2'];
+  assert.throws(()=>validateAnswer(short,scoreQ));
+});
+test('validate: candidate keys are the choice keys / the ladder indices',()=>{
+  assert.deepEqual(candidateKeys(choiceQ),['a','b','c']);
+  assert.deepEqual(candidateKeys(scoreQ),['0','1','2']);
+  assert.deepEqual(candidateKeys(noulQ),[]);
+});
+test('validate: answer type must match the question that asked it',()=>{
+  assert.throws(()=>validateAnswer(choiceAnswer(),noulQ));
+  assert.throws(()=>validateAnswer({type:'noul',noul:.5},choiceQ));
+});
+test('validate: unknown selected key is rejected',()=>{
+  assert.throws(()=>validateAnswer(choiceAnswer('invented'),choiceQ),/not a submitted candidate/);
+});
+test('validate: missing, extra, negative and nonfinite probabilities are rejected',()=>{
+  const miss=copy(choiceAnswer());delete miss.probabilities.c;
+  assert.throws(()=>validateAnswer(miss,choiceQ),/probability keys mismatch/);
+  const extra=copy(choiceAnswer());extra.probabilities.d=0;
+  assert.throws(()=>validateAnswer(extra,choiceQ),/probability keys mismatch/);
+  for(const v of [-.1,NaN]){
+    const bad=copy(choiceAnswer());bad.probabilities.b=v;
+    assert.throws(()=>validateAnswer(bad,choiceQ));
+  }
+});
+// DIVERGENCE 1 (§1.5) — upstream ACCEPTED a near-max non-argmax choice. We do not.
+test('validate: a non-argmax reported choice is REFUSED (the strict A8os rule)',()=>{
+  assert.throws(()=>validateAnswer(choiceAnswer('b'),choiceQ),/maximum-probability candidate/);
+});
+test('validate: a tie is within tolerance, so either tied key may be reported',()=>{
+  const tied={type:'choice' as const,choice:'b',probabilities:{a:.5,b:.5,c:0},confidence:.5};
+  assert.equal((validateAnswer(tied,choiceQ) as any).choice,'b');
+});
+// DIVERGENCE 2 (§1.5) — a FIXED 1e-3 bound, never scaled with the option count.
+test('validate: the sum tolerance is fixed at 1e-3 regardless of menu width',()=>{
+  assert.equal(SUM_TOLERANCE,1e-3);
+  const drift=copy(choiceAnswer());drift.probabilities.a=.7+9e-4;     // inside 1e-3
+  assert.doesNotThrow(()=>validateAnswer(drift,choiceQ));
+  const wide=copy(choiceAnswer());wide.probabilities.a=.7+5e-3;       // upstream would pass
+  assert.throws(()=>validateAnswer(wide,choiceQ),/sum/);
+});
+test('validate: a response answering only some of its questions is an error',()=>{
+  const request:DecisionRequest={model:'m',state:'s',questions:{q1:choiceQ,q2:noulQ}};
+  const response:DecisionResponse={model:'m',answers:{q1:choiceAnswer()},
+    usage:{input_tokens:1,output_tokens:0}};
+  assert.throws(()=>validateResponse(response,request),/q2/);
+});
+test('validate: an answer to a question that was not asked is an error',()=>{
+  const request:DecisionRequest={model:'m',state:'s',questions:{q1:choiceQ}};
+  const response:DecisionResponse={model:'m',
+    answers:{q1:choiceAnswer(),q9:choiceAnswer()},usage:{input_tokens:1,output_tokens:0}};
+  assert.throws(()=>validateResponse(response,request),/not asked/);
+});
+test('validate: a missing model or a nonintegral usage count is an error',()=>{
+  const request:DecisionRequest={model:'m',state:'s',questions:{q1:choiceQ}};
+  const base:DecisionResponse={model:'m',answers:{q1:choiceAnswer()},usage:{input_tokens:1,output_tokens:0}};
+  const noModel=copy(base);noModel.model='';
+  assert.throws(()=>validateResponse(noModel,request),/model/);
+  const badUsage=copy(base);badUsage.usage.input_tokens=-1;
+  assert.throws(()=>validateResponse(badUsage,request),/usage/);
+});
+
+/* ── the axis roster + the request builders ─────────────────────────────────────── */
+
+test('roster: every axis carries an `any` option, and every stack answers real axes',()=>{
+  for(const axis of Object.values(AXES)){
+    assert.ok(axis.options.some(o=>o.id==='any'),`${axis.id} has no unrestricted option`);
+    assert.ok(axis.options.length>=3);
+    assert.equal(new Set(axis.options.map(o=>o.id)).size,axis.options.length);
+  }
+  for(const stack of STACKS)
+    for(const a of STACK_AXES[stack]) assert.ok(AXES[a],`${stack} names an unknown axis ${a}`);
+});
+test('roster: no menu anywhere carries a substrate, route or family word',()=>{
+  // SUBSTRATE-LEAKS-INTO-USER-TAXONOMY, structurally: the menus are axes, so a
+  // substrate word can only arrive by someone typing one into the roster.
+  const banned=/\b(sdf|raymarch|parametric|glsl|isf|mesh|shader|fragment|p5j|css)\b/i;
+  for(const axis of Object.values(AXES))
+    for(const o of axis.options){
+      assert.notMatch(o.id,banned);assert.notMatch(o.label,banned);
+    }
+  for(const level of RATE_LADDER) assert.notMatch(level,banned);
+});
+test('roster: question ids round-trip through their parsers',()=>{
+  for(const stack of STACKS)
+    for(const axis of STACK_AXES[stack])
+      assert.deepEqual(parseAxisQuestionId(axisQuestionId(stack,axis)),{stack,axis});
+  assert.equal(parseAxisQuestionId('axis_shape_nonsense'),null);
+  assert.equal(parseLookQuestionId('look_shape'),'shape');
+  assert.equal(parseLookQuestionId('look_nonsense'),null);
+});
+test('requests: the axis request asks exactly one choice per (stack, axis)',()=>{
+  const r=buildAxisRequest('m',record,['shape','fx']);
+  assert.deepEqual(Object.keys(r.questions).sort(),
+    ['axis_fx_contrast','axis_fx_motion','axis_shape_contrast','axis_shape_density','axis_shape_order']);
+  for(const q of Object.values(r.questions)){
+    assert.equal(q.type,'choice');
+    assert.ok(Object.keys((q as ChoiceQuestion).criteria).length>=3);
+  }
+});
+test('requests: a look menu of fewer than two options is not a decision and is skipped',()=>{
+  const looks:LookCandidate[]=[{id:'l1',description:'one',params:{}}];
+  const two:LookCandidate[]=[...looks,{id:'l2',description:'two',params:{a:1}}];
+  const r=buildLookRequest('m',record,{},{shape:looks,fx:two});
+  assert.deepEqual(Object.keys(r.questions),['look_fx']);
+  assert.deepEqual(Object.keys((r.questions.look_fx as ChoiceQuestion).criteria),['l1','l2']);
+});
+test('requests: motion asks WHETHER first, then HOW only for the params that moved',()=>{
+  const params=[{name:'twist',situation:'the fold angle'},{name:'gain',situation:'the amplitude'}];
+  const whether=buildMotionRequest('m',record,{},params);
+  assert.deepEqual(Object.keys(whether.questions).sort(),['moving_gain','moving_twist']);
+  assert.ok(Object.values(whether.questions).every(q=>q.type==='noul'));
+  const how=buildMotionRequest('m',record,{},params,
+    {forParams:['twist'],waveforms:[{id:'sine',label:'Sine'},{id:'ramp',label:'Ramp'}]});
+  assert.deepEqual(Object.keys(how.questions).sort(),['rate_twist','waveform_twist']);
+  assert.equal(how.questions.rate_twist.type,'score');
+  assert.deepEqual((how.questions.rate_twist as ScoreQuestion).criteria,RATE_LADDER);
+});
+test('roster: the version is stated, so a changed question can never be invisible',()=>{
+  assert.match(ROSTER_VERSION,/^a8os\.jev\.roster\./);
+});

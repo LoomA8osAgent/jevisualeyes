@@ -1,33 +1,42 @@
-/** One explicitly opt-in, billable live API call. No automatic retries.
- *  Requires LIVE_JEV=1 and TYPESAFE_API_KEY. Validates the response shape. */
-import {readFile} from 'node:fs/promises';
-import {fileURLToPath} from 'node:url';
-import {validateChoiceResponse} from '../core/validate.js';
+/** ONE explicitly opt-in, billable live call. No retries, no test, no gate.
+ *
+ *  `jev.md` §9 and `roadmap/jevisualeyes-rework.md` §3: live smoke is exactly ONE call,
+ *  behind both an explicit flag AND a present key, never during install, build, the test
+ *  run or any gate. The guard below is upstream's shape, kept because it is correct.
+ *
+ *  It asks the REAL axis question for one record — not an inherited fixture — so what
+ *  it proves is the wire this tool actually uses.
+ *
+ *    LIVE_JEV=1 TYPESAFE_API_KEY=... node --run test:live
+ */
+import {loadConfig, effectiveKey} from '../server/config.js';
+import {HttpDecisionProvider} from '../server/provider.js';
+import {buildAxisRequest} from '../core/requests.js';
+import {validateResponse} from '../core/validate.js';
 
-if(process.env.LIVE_JEV!=='1'||!process.env.TYPESAFE_API_KEY){
+const cfg = loadConfig();
+const key = effectiveKey(cfg);
+if (process.env.LIVE_JEV !== '1' || !key) {
   console.error('Not run. Set LIVE_JEV=1 and TYPESAFE_API_KEY to authorize one live request.');
-  process.exitCode=2;
-}else{
-  const request=JSON.parse(await readFile(fileURLToPath(new URL('../fixtures/jev-request.json',import.meta.url)),'utf8'));
-  request.model=process.env.JEV_MODEL||'jev-latest';
-  const ac=new AbortController(),timer=setTimeout(()=>ac.abort(),45000),started=performance.now();
-  try{
-    const r=await fetch('https://api.typesafe.ai/v1/systemone',{
-      method:'POST',headers:{Authorization:`Bearer ${process.env.TYPESAFE_API_KEY}`,'Content-Type':'application/json'},
-      body:JSON.stringify(request),signal:ac.signal
-    });
-    if(!r.ok)throw new Error(`Provider HTTP ${r.status}; inspect secure server diagnostics. No retry made.`);
-    if(!r.body)throw new Error('Empty response body');
-    const reader=r.body.getReader(),chunks=[];let size=0;
-    for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;
-      if(size>2097152){ac.abort();throw new Error('Response size cap exceeded');}chunks.push(Buffer.from(value));}
-    const response=JSON.parse(Buffer.concat(chunks).toString('utf8'));
-    const result=validateChoiceResponse(response,request);
-    const first=result.all[Object.keys(result.all)[0]];
-    console.log(JSON.stringify({live:true,requests:1,validated:true,model:response.model,
-      selectedChoice:first?.choice,usage:response.usage,latencyMs:Math.round(performance.now()-started)},null,2));
-  }catch(e){
-    console.error(`Live smoke test did not complete: ${e.name==='AbortError'?'request aborted or timed out (billing may be unknown)':e.message}`);
-    process.exitCode=1;
-  }finally{clearTimeout(timer);}
+  process.exitCode = 2;
+} else {
+  const provider = new HttpDecisionProvider(cfg, {id:'jev', baseUrl:cfg.jevBaseUrl,
+    modelId:cfg.jevModel, providerClass:'TRAINED', apiKey:key});
+  const request = buildAxisRequest(cfg.jevModel, {
+    recordId:'waves/ocean', situation:'an open sea surface seen from above',
+    family:'waves', tag:'motion:driving density:busy contrast:hard'
+  }, ['shape']);
+  const ac = new AbortController();
+  try {
+    const receipt = await provider.decide(request, ac.signal);
+    const answers = validateResponse(receipt.response, request);
+    console.log(JSON.stringify({live:true, requests:1, validated:true,
+      provider:provider.id, model:receipt.response.model,
+      answers:Object.fromEntries(Object.entries(answers)
+        .map(([k,a]) => [k, a.type==='choice' ? {choice:a.choice, confidence:a.confidence} : a])),
+      usage:receipt.response.usage, latencyMs:receipt.latencyMs}, null, 2));
+  } catch (e) {
+    console.error(`Live smoke did not complete: ${e?.message || e}`);
+    process.exitCode = 1;
+  }
 }

@@ -8,7 +8,7 @@
     .box { fill: #fff; stroke: #555; stroke-width: 1; }
     .pick { fill: #cfcfcf; stroke: #222; stroke-width: 1.4; }
     .chip { font-size: 10.5px; }
-    .note { font-size: 10.5px; fill: #444; }
+    .ann { font-size: 10.5px; fill: #444; }
     .tag { font-size: 10px; fill: #fff; font-weight: 700; }
     .model { fill: #2b5fd9; }
     .code { fill: #3a8a3a; }
@@ -24,7 +24,7 @@
   <text x="20" y="30" class="h">How jevisualeyes composes a preset — code enumerates, the model picks one, code renders. Every choice has a receipt.</text>
   <rect x="1240" y="12" width="70" height="20" rx="3" class="model"/><text x="1275" y="26" text-anchor="middle" class="tag">MODEL CALL</text>
   <rect x="1320" y="12" width="70" height="20" rx="3" class="code"/><text x="1355" y="26" text-anchor="middle" class="tag">CODE ONLY</text>
-  <text x="1400" y="26" class="note">Provider: local decision model (Laya) · Jev optional · fixture in every test</text>
+  <text x="1400" y="26" class="ann">Provider: local decision model (Laya) · Jev optional · fixture in every test</text>
 
   <!-- ===== ROW 1 ===== -->
   <!-- 1 Place the tag -->
@@ -80,8 +80,8 @@
     <text x="22" y="384" class="lbl">Resulting coordinate</text>
     <text x="22" y="400" class="p">motion slow · density medium · contrast soft · palette cool</text>
     <text x="22" y="414" class="p">symmetry 2-fold · depth lit</text>
-    <text x="22" y="434" class="note">No genre names anywhere: a style is a point on these axes.</text>
-    <text x="22" y="448" class="note">Ladders are ORDINAL situations, never numbers — code maps them.</text>
+    <text x="22" y="434" class="ann">No genre names anywhere: a style is a point on these axes.</text>
+    <text x="22" y="448" class="ann">Ladders are ORDINAL situations, never numbers — code maps them.</text>
   </g>
 
   <!-- 2 Mark what moves -->
@@ -103,12 +103,12 @@
     <rect x="14" y="282" width="362" height="80" class="box"/>
     <text x="22" y="298" class="lbl">Moving set (above the band)</text>
     <text x="22" y="314" class="p">surface.fold · lighting.keyAngle · raymarch.palette.shift</text>
-    <text x="22" y="334" class="note">0.5 means "unsure", not "a little". The band is calibrated on</text>
-    <text x="22" y="348" class="note">labelled looks, per provider — a Jev threshold does not transfer.</text>
-    <text x="14" y="390" class="note">Why the same request: the axes and the motion flags are</text>
-    <text x="14" y="404" class="note">independent given the tag, so they ride one call and cannot</text>
-    <text x="14" y="418" class="note">see each other. A hop exists only where the next MENU is</text>
-    <text x="14" y="432" class="note">built from a prior answer (stage 4).</text>
+    <text x="22" y="334" class="ann">0.5 means "unsure", not "a little". The band is calibrated on</text>
+    <text x="22" y="348" class="ann">labelled looks, per provider — a Jev threshold does not transfer.</text>
+    <text x="14" y="390" class="ann">Why the same request: the axes and the motion flags are</text>
+    <text x="14" y="404" class="ann">independent given the tag, so they ride one call and cannot</text>
+    <text x="14" y="418" class="ann">see each other. A hop exists only where the next MENU is</text>
+    <text x="14" y="432" class="ann">built from a prior answer (stage 4).</text>
   </g>
 
   <!-- 3 Sample the looks -->
@@ -128,21 +128,21 @@
       <rect y="0" width="112" height="120" class="box"/>
       <text x="56" y="16" text-anchor="middle" class="lbl">S_r2_soft</text>
       <rect x="10" y="24" width="92" height="60" fill="#eee" stroke="#999"/>
-      <text x="8" y="100" class="note">two folds, wide</text><text x="8" y="112" class="note">cells, soft rim</text>
+      <text x="8" y="100" class="ann">two folds, wide</text><text x="8" y="112" class="ann">cells, soft rim</text>
       <rect x="125" y="0" width="112" height="120" class="box"/>
       <text x="181" y="16" text-anchor="middle" class="lbl">S_r5_med</text>
       <rect x="135" y="24" width="92" height="60" fill="#ddd" stroke="#999"/>
-      <text x="133" y="100" class="note">three folds, mid</text><text x="133" y="112" class="note">cells, soft rim</text>
+      <text x="133" y="100" class="ann">three folds, mid</text><text x="133" y="112" class="ann">cells, soft rim</text>
       <rect x="250" y="0" width="112" height="120" class="box"/>
       <text x="306" y="16" text-anchor="middle" class="lbl">S_r7_soft</text>
       <rect x="260" y="24" width="92" height="60" fill="#e5e5e5" stroke="#999"/>
-      <text x="258" y="100" class="note">two folds, tight</text><text x="258" y="112" class="note">cells, soft rim</text>
+      <text x="258" y="100" class="ann">two folds, tight</text><text x="258" y="112" class="ann">cells, soft rim</text>
     </g>
     <text x="14" y="340" class="lbl">Same for every stack:</text>
     <text x="14" y="356" class="p">lighting (8) · symmetry (6) · raymarch/shade ops (8) · layers (4) · FX (6)</text>
-    <text x="14" y="386" class="note">The menu bounds what can exist. If a look is not on any menu,</text>
-    <text x="14" y="400" class="note">no tag can produce it — the model picks the closest thing.</text>
-    <text x="14" y="420" class="note">Rosters are READ from the app's canon at run time, never copied.</text>
+    <text x="14" y="386" class="ann">The menu bounds what can exist. If a look is not on any menu,</text>
+    <text x="14" y="400" class="ann">no tag can produce it — the model picks the closest thing.</text>
+    <text x="14" y="420" class="ann">Rosters are READ from the app's canon at run time, never copied.</text>
   </g>
 
   <!-- 4 Pick one look per stack -->
@@ -170,9 +170,9 @@
     <text x="22" y="310" class="p">returned distribution (temperature 0.8), PRNG state persisted.</text>
     <text x="22" y="330" class="p">Strict validation first: keys == candidates, finite, sum ≈ 1,</text>
     <text x="22" y="344" class="p">chosen == argmax. Anything else is an ERROR, never a random pick.</text>
-    <text x="22" y="364" class="note">A wrong pick is still on the menu; it can never invent a knob.</text>
-    <text x="14" y="400" class="note">Only a TRAINED provider's probabilities are confidence.</text>
-    <text x="14" y="414" class="note">A logit-reading LLM may serve the argmax, never a band.</text>
+    <text x="22" y="364" class="ann">A wrong pick is still on the menu; it can never invent a knob.</text>
+    <text x="14" y="400" class="ann">Only a TRAINED provider's probabilities are confidence.</text>
+    <text x="14" y="414" class="ann">A logit-reading LLM may serve the argmax, never a band.</text>
   </g>
 
   <!-- ===== ROW 2 ===== -->
@@ -199,19 +199,19 @@
       <rect x="204" y="0" width="96" height="20" class="box"/><text x="252" y="14" text-anchor="middle" class="chip">2 pulses</text>
       <rect x="306" y="0" width="96" height="20" class="box"/><text x="354" y="14" text-anchor="middle" class="chip">3 strobes</text>
     </g>
-    <text x="14" y="222" class="note">score 1.2 · probabilities {0: .1, 1: .7, 2: .2, 3: 0}</text>
+    <text x="14" y="222" class="ann">score 1.2 · probabilities {0: .1, 1: .7, 2: .2, 3: 0}</text>
     <path d="M260,236 L260,258" class="arrow"/>
     <rect x="14" y="264" width="492" height="120" class="box"/>
     <text x="22" y="280" class="lbl">Resulting binds (code turns the ladder into a value)</text>
     <text x="22" y="298" class="p">surface.fold        ← LFO sine, rate level 1 → 0.08 Hz, bracket inside the knob's range</text>
     <text x="22" y="314" class="p">lighting.keyAngle   ← LFO triangle, rate level 1 → 0.05 Hz</text>
     <text x="22" y="330" class="p">raymarch.palette.shift ← LFO sine, rate level 0 → 0.02 Hz</text>
-    <text x="22" y="352" class="note">Binds ride the app's data router like any other source. A Score is</text>
-    <text x="22" y="366" class="note">ordinal — "1.2" is not 20% of the way to "pulses"; it is thresholded.</text>
-    <text x="14" y="412" class="note">The model never does arithmetic, never orders dates, never writes a</text>
-    <text x="14" y="426" class="note">value. Ordinal → number is code (rate table per record family).</text>
-    <text x="14" y="454" class="note">On the 2-slot ONNX export this stage waits for the reference runtime</text>
-    <text x="14" y="468" class="note">(Score + N-way Choice are the conversion's limit, not the model's).</text>
+    <text x="22" y="352" class="ann">Binds ride the app's data router like any other source. A Score is</text>
+    <text x="22" y="366" class="ann">ordinal — "1.2" is not 20% of the way to "pulses"; it is thresholded.</text>
+    <text x="14" y="412" class="ann">The model never does arithmetic, never orders dates, never writes a</text>
+    <text x="14" y="426" class="ann">value. Ordinal → number is code (rate table per record family).</text>
+    <text x="14" y="454" class="ann">On the 2-slot ONNX export this stage waits for the reference runtime</text>
+    <text x="14" y="468" class="ann">(Score + N-way Choice are the conversion's limit, not the model's).</text>
   </g>
 
   <!-- 6 Assemble the preset -->
@@ -230,17 +230,17 @@
     <text x="22" y="188" class="chip">layers      { bg: cool-01 }        fx: [bloom-soft]</text>
     <text x="22" y="204" class="chip">binds       [ surface.fold←lfo.sine@0.08, lighting.keyAngle←lfo.tri@0.05, … ]</text>
     <text x="22" y="220" class="chip">generation.provenance  [ receipt CALL1, receipt CALL2, receipt CALL3 ]</text>
-    <text x="22" y="244" class="note">Each receipt: request hash · candidate-map version · prompt-template version · provider id</text>
-    <text x="22" y="258" class="note">· model id · full distribution · chosen id · selection policy · usage · latency.</text>
+    <text x="22" y="244" class="ann">Each receipt: request hash · candidate-map version · prompt-template version · provider id</text>
+    <text x="22" y="258" class="ann">· model id · full distribution · chosen id · selection policy · usage · latency.</text>
     <text x="14" y="296" class="lbl">Every choice is auditable</text>
     <text x="14" y="312" class="p">Any knob in the preset traces to the question it answered, the menu</text>
     <text x="14" y="328" class="p">it saw, and the option that won — or to a manual edit, labelled as such.</text>
     <text x="14" y="356" class="lbl">Every choice persists</text>
     <text x="14" y="372" class="p">The preset walk carries all of it: values, brackets, binds, ops, layers.</text>
     <text x="14" y="388" class="p">A choice that does not survive a recall is a bug, not a feature gap.</text>
-    <text x="14" y="420" class="note">Provider id + model id + question roster + template version + thresholds</text>
-    <text x="14" y="434" class="note">are ONE versioned unit. Same stored receipts + same seed replay exactly;</text>
-    <text x="14" y="448" class="note">a live rerun does not — and says so.</text>
+    <text x="14" y="420" class="ann">Provider id + model id + question roster + template version + thresholds</text>
+    <text x="14" y="434" class="ann">are ONE versioned unit. Same stored receipts + same seed replay exactly;</text>
+    <text x="14" y="448" class="ann">a live rerun does not — and says so.</text>
   </g>
 
   <!-- 7 Repeat / regenerate -->
@@ -272,9 +272,9 @@
     <text x="22" y="376" class="p">It cannot guarantee taste. The model cannot see the render. A valid</text>
     <text x="22" y="390" class="p">all-default look fails the eye; the user (or a later vision judge) says so,</text>
     <text x="22" y="404" class="p">and the runner offers another variation — never a hidden fallback.</text>
-    <text x="22" y="426" class="note">Cost: 2–3 calls per (record, tag). Bake of 495 records ≈ 5,000 calls —</text>
-    <text x="22" y="440" class="note">under a dollar on Jev, zero on the local provider.</text>
-    <text x="14" y="476" class="note">Fixture provider = deterministic synthetic decisions; every test and gate</text>
-    <text x="14" y="490" class="note">runs on it with zero network. Live smoke is one call behind an explicit flag.</text>
+    <text x="22" y="426" class="ann">Cost: 2–3 calls per (record, tag). Bake of 495 records ≈ 5,000 calls —</text>
+    <text x="22" y="440" class="ann">under a dollar on Jev, zero on the local provider.</text>
+    <text x="14" y="476" class="ann">Fixture provider = deterministic synthetic decisions; every test and gate</text>
+    <text x="14" y="490" class="ann">runs on it with zero network. Live smoke is one call behind an explicit flag.</text>
   </g>
 </svg>

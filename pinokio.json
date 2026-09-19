@@ -1,6 +1,0 @@
-{
-  "title": "Jevthoven",
-  "description": "Prompt-first symbolic-music studio powered by live TypeSafe Jev decisions. Describe music in words, listen to an editable composition, keep shaping the same piece. Requires a TYPESAFE_API_KEY for live mode; a no-credit fixture mode is built in.",
-  "icon": "icon.jpg",
-  "tags": ["music", "midi", "ai", "typesafe", "jev"]
-}

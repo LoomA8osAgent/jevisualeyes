@@ -1,5 +1,19 @@
-/** SQLite persistence via node:sqlite (built into Node ≥22.13) — no native module,
- *  so it runs identically under any Node version the launcher uses. */
+/** SQLite persistence via node:sqlite (built into Node >=22.13) - no native module,
+ *  so it runs identically under any Node version the launcher uses.
+ *
+ *  THIS IS A JOB JOURNAL, NOT A STORE (`roadmap/jevisualeyes-rework.md` §1.6). It holds
+ *  pending payloads, attempts, receipts and events so a bake is resumable. The composed
+ *  output LEAVES it immediately and lands in the app's own source-keyed preset bank
+ *  through the app's own POST path; a bake whose results only existed in its own
+ *  database would be exactly the parallel writer `jev.md` §P2.3 forbids. It is never
+ *  read by the app, never a preset store, and never a second home for anything the app
+ *  owns - so `specs/CLAUDE.md` §Storage canon, which binds the APP, is not in play.
+ *
+ *  The upstream machinery - WAL, foreign keys, the BEGIN IMMEDIATE helper, the
+ *  idempotent migration ladder keyed on a `meta` row - is unchanged. Only the table
+ *  names swap: upstream's two-table document store becomes `compositions`, one row per
+ *  completed (record, tag) unit.
+ */
 import {DatabaseSync} from 'node:sqlite';
 import {mkdirSync} from 'node:fs';
 import {join} from 'node:path';
@@ -10,29 +24,21 @@ CREATE TABLE IF NOT EXISTS meta (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS projects (
+CREATE TABLE IF NOT EXISTS compositions (
   id TEXT PRIMARY KEY,
-  owner_id TEXT NOT NULL,
-  title TEXT NOT NULL,
-  accepted_revision_id TEXT,
-  aux_json TEXT NOT NULL DEFAULT '{}',
+  record_id TEXT NOT NULL,
+  tag TEXT NOT NULL,
+  job_id TEXT NOT NULL,
+  snapshot_json TEXT NOT NULL,
+  snapshot_hash TEXT NOT NULL,
+  receipts_json TEXT NOT NULL,
   created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS revisions (
-  id TEXT PRIMARY KEY,
-  project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  parent_id TEXT REFERENCES revisions(id),
-  score_json TEXT NOT NULL,
-  score_hash TEXT NOT NULL,
-  command_id TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  UNIQUE(project_id, command_id)
+  UNIQUE(record_id, tag)
 );
 CREATE TABLE IF NOT EXISTS jobs (
   id TEXT PRIMARY KEY,
-  project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  base_revision_id TEXT REFERENCES revisions(id),
+  record_id TEXT NOT NULL,
+  tag TEXT NOT NULL,
   command_id TEXT NOT NULL,
   status TEXT NOT NULL,
   epoch INTEGER NOT NULL DEFAULT 0,
@@ -41,7 +47,7 @@ CREATE TABLE IF NOT EXISTS jobs (
   runtime_json TEXT NOT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
-  UNIQUE(project_id, command_id)
+  UNIQUE(record_id, tag, command_id)
 );
 CREATE TABLE IF NOT EXISTS pending_decisions (
   decision_id TEXT PRIMARY KEY,
@@ -78,14 +84,14 @@ CREATE TABLE IF NOT EXISTS job_events (
   PRIMARY KEY(job_id, event_id)
 );
 CREATE INDEX IF NOT EXISTS jobs_status_idx ON jobs(status);
-CREATE INDEX IF NOT EXISTS revisions_project_idx ON revisions(project_id);
+CREATE INDEX IF NOT EXISTS compositions_record_idx ON compositions(record_id);
 `];
 
 export type DB = DatabaseSync & {transaction:<T>(fn:()=>T)=>()=>T};
 
 export function openDb(cfg:AppConfig):DB {
   mkdirSync(cfg.dataDir,{recursive:true});
-  const db = new DatabaseSync(join(cfg.dataDir,'jevmusic.db')) as DB;
+  const db = new DatabaseSync(join(cfg.dataDir,'jevisualeyes.db')) as DB;
   db.exec(`PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;`);
   // better-sqlite3-style transaction helper; nested calls join the outer transaction
   let txDepth=0;

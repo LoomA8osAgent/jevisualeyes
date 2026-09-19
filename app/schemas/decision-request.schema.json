@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "a8os.jev.decision-request.v1",
+  "title": "Decision request — specs/ai/jev.md §1.1 + §1.2",
+  "description": "Extended from Choice-only to the three primitives (noul | choice | score). One state, N questions, evaluated INDEPENDENTLY (L7).",
+  "type": "object",
+  "required": ["model", "state", "questions"],
+  "additionalProperties": false,
+  "properties": {
+    "model": {"type": "string", "minLength": 1, "maxLength": 200},
+    "state": {"type": ["string", "object", "array"]},
+    "questions": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["type", "instructions"],
+            "additionalProperties": false,
+            "properties": {
+              "type": {"const": "noul"},
+              "instructions": {"type": ["string", "object", "array"]}
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type", "instructions", "criteria"],
+            "additionalProperties": false,
+            "properties": {
+              "type": {"const": "choice"},
+              "instructions": {"type": ["string", "object", "array"]},
+              "criteria": {
+                "type": "object",
+                "minProperties": 2,
+                "maxProperties": 255,
+                "additionalProperties": {"type": ["string", "null"]}
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type", "instructions", "criteria"],
+            "additionalProperties": false,
+            "properties": {
+              "type": {"const": "score"},
+              "instructions": {"type": ["string", "object", "array"]},
+              "criteria": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 255,
+                "items": {"type": "string", "minLength": 1},
+                "description": "An ORDERED ladder of named situations. The answer's number is an ordinal index, never a measurement (L4)."
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
