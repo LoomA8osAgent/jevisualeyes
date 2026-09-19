@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "a8os.jev.receipt.v1",
-  "title": "Decision receipt — specs/ai/jev.md §8",
-  "description": "One receipt per question per accepted attempt. It records providerClass beside providerId so an artifact can never read as calibrated when a DECODE provider produced it (§3.1a), and `model` is always what the provider RETURNED, never what was sent. `provenance: synthetic` (fixture runs) is never laundered.",
+  "title": "Decision receipt — docs/COMPOSER.md §5",
+  "description": "One receipt per question per accepted attempt. It records providerClass beside providerId so an artifact can never read as calibrated when a DECODE provider produced it (docs/COMPOSER.md §3.1), and `model` is always what the provider RETURNED, never what was sent. `provenance: synthetic` (fixture runs) is never laundered.",
   "type": "object",
   "required": ["schemaVersion", "id", "jobId", "decisionIndex", "attemptIndex", "requestHash",
     "candidateHash", "providerId", "providerClass", "model", "promptTemplateVersion",

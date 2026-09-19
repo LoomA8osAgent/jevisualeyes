@@ -5,11 +5,11 @@
  *  it samples and builds the step, and it owns no I/O and no policy. The two can never
  *  drift into each other because neither can see the other's half.
  *
- *  I3 SCOPE, stated plainly: this composer runs the **`looks` arm only**. The axis
- *  coordinate is GIVEN (a tag, compiled in code — `rework §2.2`), not asked; CALL 1's
- *  axis Choices and CALL 3's motion questions are I4/I6 and are deliberately absent rather
- *  than stubbed. `nextStep` therefore returns exactly one step and then `null`, which is
- *  the spine's own signal that the unit is done.
+ *  SCOPE, stated plainly: this composer runs the **`looks` arm only**. The axis coordinate
+ *  is GIVEN (a tag, compiled in code), not asked; CALL 1's axis Choices and CALL 3's motion
+ *  questions are `docs/PLAN.md` §1 I4/I6 and are deliberately absent rather than stubbed.
+ *  `nextStep` therefore returns exactly one step and then `null`, which is the spine's own
+ *  signal that the unit is done.
  */
 import type {Composer, ComposerStep} from '../server/jobs.js';
 import type {AxisCoordinate, CompositionDraft, StackId} from './types.js';
@@ -23,8 +23,9 @@ export interface LooksComposerOptions {
   index:RecordIndex;
   rosters:Rosters;
   model:string;
-  /** tag → the per-stack axis coordinate it compiles to (rework §2.2 — the tag compiler).
-   *  A tag this map does not carry is a refusal, not an empty coordinate. */
+  /** tag → the per-stack axis coordinate it compiles to (the tag compiler,
+   *  `docs/COMPOSER.md` §6). A tag this map does not carry is a refusal, not an empty
+   *  coordinate. */
   tags:Record<string,Partial<Record<StackId,AxisCoordinate>>>;
   /** how many complete looks per stack. A menu of 1 is not a decision and is never asked. */
   n?:number;
@@ -54,16 +55,16 @@ export class LooksComposer implements Composer {
     const record = this.opts.index.get(draft.recordId);
     const coordinate = this.opts.tags[draft.tag];
     if (!coordinate) throw new Error(
-      `no coordinate compiled for tag "${draft.tag}" — a tag is a coordinate (rework §2.2), ` +
+      `no coordinate compiled for tag "${draft.tag}" — a tag is a coordinate ` +
       'and an unknown tag is refused rather than composed at the origin');
 
     const map = buildCandidateMap(record, coordinate, {n:this.opts.n ?? 6, seed, rosters:this.opts.rosters});
     this.lastNotAsked = map.notAsked;
-    if (!Object.keys(map.candidates).length) return null;   // nothing composable — §P2.4
+    if (!Object.keys(map.candidates).length) return null;   // nothing composable — §8
 
     const state:RecordState = {
       recordId:record.id, family:record.family, tag:draft.tag,
-      // §P2.4: the record's own situation sentence. Absent today for every record — the
+      // §8: the record's own situation sentence. Absent today for every record — the
       // descriptor lift precedes a real bake — and NAMED as absent rather than faked.
       situation:record.situation ?? `${record.label} (no situation sentence yet — descriptor lift pending)`
     };

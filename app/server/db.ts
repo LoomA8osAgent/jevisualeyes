@@ -1,18 +1,17 @@
 /** SQLite persistence via node:sqlite (built into Node >=22.13) - no native module,
  *  so it runs identically under any Node version the launcher uses.
  *
- *  THIS IS A JOB JOURNAL, NOT A STORE (`roadmap/jevisualeyes-rework.md` §1.6). It holds
- *  pending payloads, attempts, receipts and events so a bake is resumable. The composed
- *  output LEAVES it immediately and lands in the app's own source-keyed preset bank
- *  through the app's own POST path; a bake whose results only existed in its own
- *  database would be exactly the parallel writer `jev.md` §P2.3 forbids. It is never
- *  read by the app, never a preset store, and never a second home for anything the app
- *  owns - so `specs/CLAUDE.md` §Storage canon, which binds the APP, is not in play.
+ *  THIS IS A JOB JOURNAL, NOT A STORE (`docs/PLAN.md` §3). It holds pending payloads,
+ *  attempts, receipts and events so a bake is resumable. The composed output LEAVES it
+ *  immediately and lands in the consuming app's own source-keyed preset bank through that
+ *  app's own POST path; a bake whose results only existed in its own database would be a
+ *  second writer for state the app owns. It is never read by the app, never a preset
+ *  store, and never a second home for anything the app owns.
  *
- *  The upstream machinery - WAL, foreign keys, the BEGIN IMMEDIATE helper, the
- *  idempotent migration ladder keyed on a `meta` row - is unchanged. Only the table
- *  names swap: upstream's two-table document store becomes `compositions`, one row per
- *  completed (record, tag) unit.
+ *  WAL, foreign keys, the BEGIN IMMEDIATE helper and the idempotent migration ladder keyed
+ *  on a `meta` row are the durability floor the spine's one-transaction-per-decision rule
+ *  stands on (`docs/COMPOSER.md` §7). `compositions` holds one row per completed
+ *  (record, tag) unit.
  */
 import {DatabaseSync} from 'node:sqlite';
 import {mkdirSync} from 'node:fs';

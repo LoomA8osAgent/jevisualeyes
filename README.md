@@ -6,10 +6,13 @@
 
 **Local model first.** The default provider is an open-weight decision model running on this machine over the `/v1/systemone` wire on loopback — no key, no network, no telemetry ([Laya](https://huggingface.co/convaiinnovations/laya) via [von](https://github.com/wfzyx/von) today). TypeSafe's Jev is an optional remote provider, never a requirement. The open reproductions of Jev are tracked here: **https://huggingface.co/spaces/multimodalart/jev-reproductions-tracker** — trained scoring heads (calibrated) are the only class that may arm a threshold; logit-reading LLM replicas serve the argmax only.
 
-**Status: increments I1 + I2 have landed.** The engine lineage and its MIT notice are in `LICENSE`; nothing else of the origin remains in this tree. What this repository IS: the composer loop (persist-before-call → validate → one durable commit → receipt), the fixture-provider posture, strict response validation, and the resumable single-runner job engine — pointed at preset composition for the A8os shape corpus. This is an offline author-time tool, not a shipped product: it has no UI, no server to visit, and nothing it produces runs in a browser here.
+**Status: increments I1 · I2 · I3 have landed** (`docs/PLAN.md` §1); I4 is next. The engine lineage and its MIT notice are in `LICENSE`; nothing else of the origin remains in this tree. What this repository IS: the composer loop (persist-before-call → validate → one durable commit → receipt), the fixture-provider posture, strict response validation, and the resumable single-runner job engine — pointed at preset composition for the A8os shape corpus. This is an offline author-time tool, not a shipped product: it has no UI, no server to visit, and nothing it produces runs in a browser here.
 
-Design: `specs/ai/jev.md` (the judgment layer) and `roadmap/jevisualeyes-rework.md` (this
-rework, file by file) — both in the A8os repository.
+**The two documents that govern this repository, both in it:**
+[**`docs/COMPOSER.md`**](docs/COMPOSER.md) — the composer contract: the spine, the
+primitives, the providers, validation and selection, receipts, the axes, the pipeline, the
+descriptor requirement, the stacks, and what the model is never asked.
+[**`docs/PLAN.md`**](docs/PLAN.md) — the increments, the three risks, and what this retires.
 
 ---
 
@@ -22,7 +25,7 @@ What survives the swap, and what each piece does now.
 | deterministic canonicalization | `app/core/canon.ts` | key-sorted JSON with a depth cap, a cycle check and an unsafe-key guard — what makes a request hash and a candidate hash mean something |
 | content hashing | `app/core/hash.ts` | `sha256(canonicalJSON(v))` |
 | selection policy | `app/core/selection.ts` | the provider's own pick (`model`), or seeded sampling from the validated distribution (`sample`), so the same stored responses and the same PRNG state replay exactly |
-| strict validation | `app/core/validate.ts` | the three primitives, and two ruled divergences from upstream: the argmax rule is **strict**, and the probability-sum tolerance is **fixed at 1e-3** |
+| strict validation | `app/core/validate.ts` | the three primitives, and two constants fixed on purpose: the argmax rule is **strict**, and the probability-sum tolerance is **fixed at 1e-3** |
 | the axis roster | `app/core/axes.ts` | coordinates, not names. Six axes — motion · density · contrast · warmth · order · depth — and the question text, versioned beside the menus it belongs to |
 | the shared rosters | `app/core/rosters.ts` | reads the app's own canon — warp ops, raymarch ops, layer modes, the FX manifest, the LFO waveforms — and transcribes none of it, so a roster change reaches the composer by re-running |
 | the record descriptors | `app/core/records.ts` | one record's knobs with their bounds and their situation sentences, each tagged composable or carrying the reason it is not: a knob with no sentence is held at its default and named, never guessed |
@@ -30,7 +33,7 @@ What survives the swap, and what each piece does now.
 | the candidate map | `app/core/candidates.ts` | sampled looks → the string-valued criteria a request carries, persisted beside them so a returned key is LOOKED UP and never interpreted |
 | the looks composer | `app/core/composer.ts` | the domain half of the spine's seam: a tag compiles to a coordinate, the samplers draw the menus, and one `looks` step goes out |
 | request builders | `app/core/requests.ts` | one builder per decision kind. It samples nothing: candidates arrive as arguments, because code enumerates and the model only picks |
-| the providers | `app/server/provider.ts`, `fixture.ts` | one HTTP adapter serving both the local runtime and the remote endpoint over the same wire, plus a planted-map fixture that is TOLD what to answer and never infers |
+| the providers | `app/server/provider.ts`, `app/server/fixture.ts` | one HTTP adapter serving both the local runtime and the remote endpoint over the same wire, plus a planted-map fixture that is TOLD what to answer and never infers |
 | the spine | `app/server/jobs.ts` | persist the exact pending payload → call → validate → select → **one durable transaction** → receipt, with an epoch guard, bounded retry, a request ceiling that pauses rather than fails, and boot recovery that never auto-resumes spend |
 | the job journal | `app/server/db.ts` | SQLite (`node:sqlite`, no native module) holding pending payloads, attempts, receipts and events so a run is resumable. It is a journal, not a store — composed output leaves it immediately |
 | the entry | `app/server/index.ts` | a CLI. `runUnit(composer, record, tag)` composes one unit; `status` reports what a run would do right now |
@@ -70,6 +73,16 @@ the remote provider is opt-in, called directly from this machine, and its key is
 from the environment or a `0600` settings file — never from a file in this repository.
 There is no telemetry, no account, and no server to run. A run that used the fixture is
 labelled `synthetic` in every receipt it wrote, and that label is never laundered.
+
+## Credits
+
+- **Michael Parenti** ([exiledsurfer](https://github.com/exiledsurfer)) — operator, method,
+  and the A8os corpus this composes for.
+- **Loom** — the A8os coordinator seat (Claude), which specced and built this from the seat,
+  using its own governance package
+  [a8-loom-coordinator](https://github.com/LoomA8osAgent/a8-loom-coordinator) (the judgment
+  layer + spec-catalog stack that gates the work).
+- The engine lineage and its MIT notice: see `LICENSE`.
 
 ## Licence
 

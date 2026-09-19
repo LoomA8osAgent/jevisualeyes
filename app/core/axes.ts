@@ -1,26 +1,22 @@
-/** THE AXIS ROSTER — coordinates, not names (`specs/ai/jev.md` §6).
+/** THE AXIS ROSTER — coordinates, not names (`docs/COMPOSER.md` §6).
  *
- *  The upstream file this replaces states the pattern verbatim: "there are no named
- *  styles; a style is a coordinate in a parameter space, and code samples concrete
- *  renderings from the chosen point." Its axes are replaced by the A8os six; the SHAPE — `{id,label,options[]}` plus an `any` option meaning "this axis is left
- *  unconstrained" — is unchanged.
+ *  There are no named styles: a style is a coordinate in a parameter space, and code samples
+ *  concrete renderings from the chosen point. The shape — `{id,label,options[]}` plus an `any`
+ *  option meaning "this axis is left unconstrained" — is the whole vocabulary.
  *
- *  Why this satisfies `SUBSTRATE-LEAKS-INTO-USER-TAXONOMY` structurally rather than by
- *  discipline: there is no family name, group id, route, or substrate word anywhere in a
- *  menu, because the menus ARE axes. Expanding coverage means adding an axis VALUE or a
- *  sampler branch — never a named style.
+ *  Why this is structural rather than a discipline: there is no family name, group id, route,
+ *  or substrate word anywhere in a menu, because the menus ARE axes. Expanding coverage means
+ *  adding an axis VALUE or a sampler branch — never a named style.
  *
- *  ⚠ WHERE THIS LIVES, and why it lives here FOR NOW. `jev.md` §6 says the axis
- *  vocabulary lives in `app/js/jev-roster.js` and that a consumer READS it rather than
- *  transcribing it (`SHARED-CANON-DUPLICATED-PER-ENGINE`). That file DOES NOT EXIST yet
- *  — only PART 1's node-side roster (`tools/hooks/lib/judgment-roster.js`) is built. So
- *  this module is the FIRST home of the PART 2 vocabulary, not a second copy of one. When
- *  `jev-roster.js` lands it is authored in the dual-export idiom (`jev.md` §3), and this
- *  file becomes a `require()` of it — never a synchronized twin.
+ *  WHERE THIS LIVES, and why it lives here FOR NOW. The consuming app is the eventual home of
+ *  the axis vocabulary, and a consumer READS it rather than transcribing it. That app-side
+ *  roster does not exist yet, so this module is the FIRST home of the vocabulary, not a second
+ *  copy of one. When the app-side roster lands, this file becomes a read of it — never a
+ *  synchronized twin.
  *
- *  EVERY CHANGE TO ANY VALUE BELOW BUMPS `ROSTER_VERSION` (L10, §11). A changed prompt
- *  or menu that does not move the version is an invisible change, and an invisible change
- *  to a question is an invisible change to every receipt downstream.
+ *  EVERY CHANGE TO ANY VALUE BELOW BUMPS `ROSTER_VERSION` (`docs/COMPOSER.md` §12). A changed
+ *  prompt or menu that does not move the version is an invisible change, and an invisible
+ *  change to a question is an invisible change to every receipt downstream.
  */
 import type {StackId} from './types.js';
 
@@ -69,7 +65,7 @@ export const AXES:Record<string,Axis> = {
     ANY]}
 };
 
-/** Each stack answers ONLY the axes that mean something for it (`jev.md` §6). */
+/** Each stack answers ONLY the axes that mean something for it (`docs/COMPOSER.md` §9). */
 export const STACK_AXES:Record<StackId,string[]> = {
   shape:['density','contrast','order'],
   mathops:['motion','order','depth'],
@@ -90,9 +86,9 @@ export const STACK_LABELS:Record<StackId,string> = {
 
 export const STACKS:StackId[] = Object.keys(STACK_AXES) as StackId[];
 
-/** THE QUESTION TEXT, versioned beside the menus it belongs to (§11) — the one home.
- *  Upstream kept these in `requests.ts`; the plan moves them to the roster so there is
- *  never a second copy of a question (`CANON-VALUE-IN-PROSE`). */
+/** THE QUESTION TEXT, versioned beside the menus it belongs to (`docs/COMPOSER.md` §12) —
+ *  the ONE home. A question whose text lives in two places is a question that can change in
+ *  one of them. */
 export const PROMPT_VERSIONS = {
   axes:'axes.v1', looks:'looks.v1', motionMoving:'motion-moving.v1',
   motionWaveform:'motion-waveform.v1', motionRate:'motion-rate.v1'
@@ -143,12 +139,12 @@ export const RATE_LADDER:string[] = [
  *
  *  An axis value is a WORD, and a sampler needs a PLACE IN A RANGE. These two small
  *  tables are that translation and nothing more: they add no seventh axis, no named
- *  style, and no vocabulary the menus do not already carry (`jev.md` §6 —
- *  `SUBSTRATE-LEAKS-INTO-USER-TAXONOMY` stays satisfied structurally, because expanding
- *  coverage means adding an axis VALUE or a sampler branch, never a style name).
+ *  style, and no vocabulary the menus do not already carry (`docs/COMPOSER.md` §6 — the
+ *  no-named-styles rule stays satisfied structurally, because expanding coverage means
+ *  adding an axis VALUE or a sampler branch, never a style name).
  *
  *  They are HERE, in the roster, for the same reason the question text is: one versioned
- *  home (§11). Every change below bumps ROSTER_VERSION.
+ *  home (`docs/COMPOSER.md` §12). Every change below bumps ROSTER_VERSION.
  */
 
 /** axis id → (option id → where in a knob's range that word sits, 0 = MIN, 1 = MAX).
@@ -164,16 +160,16 @@ export const AXIS_POSITION:Record<string,Record<string,number>> = {
 };
 
 /** How wide a band around that place the sampler draws from, so N candidates at one
- *  coordinate are genuinely DIFFERENT looks rather than N copies of a point (upstream's
- *  `humanize`, `docs/upstream/02`). Unconstrained axes ignore it and draw [0,1]. */
+ *  coordinate are genuinely DIFFERENT looks rather than N copies of a point
+ *  (`docs/COMPOSER.md` §7). Unconstrained axes ignore it and draw [0,1]. */
 export const AXIS_SPREAD = 0.22;
 
 /** knob ROLE → the axis whose situation words move it, and the SENSE (+1: the axis's
  *  "more" end is the knob's MAX end; -1: it is the knob's MIN end).
  *
- *  The role keys are READ from the app at runtime, never listed here — they are
- *  `_ROLE_NAME` in `app/js/formats/_sdf-math.js` (`auditLiterals`, the literal-auditor
- *  that mints ~49.5% of the corpus's knobs under ONE shared role table). This map is the
+ *  The role keys are READ from the app at runtime, never listed here — they come from the
+ *  shared role table of the literal auditor that mints ~49.5% of the corpus's knobs
+ *  (`docs/COMPOSER.md` §8.1 bucket D). This map is the
  *  only new judgement: which of the six axes each of those roles answers to. A role with
  *  no row here is simply unbiased — the sampler draws it across its whole range, which is
  *  the honest reading of "this coordinate says nothing about this knob".

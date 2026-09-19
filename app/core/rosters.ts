@@ -1,9 +1,9 @@
 /** THE SHARED ROSTERS, READ FROM THE APP — never transcribed.
  *
- *  `specs/ai/jev.md` §P2.2 is explicit: "Rosters are READ from the shared canon, never
- *  transcribed (`SHARED-CANON-DUPLICATED-PER-ENGINE`)". This module is the ONE place that
- *  reads them, so a sampler never holds a copy and a roster change reaches the composer by
- *  re-running, not by editing this repo.
+ *  `docs/COMPOSER.md` §9 is explicit: the rosters are READ from the consuming app's shared
+ *  canon and transcribed nowhere. This module is the ONE place that reads them, so a sampler
+ *  never holds a copy and a roster change reaches the composer by re-running, not by editing
+ *  this repo.
  *
  *  FOUR READ MODES, chosen by what the app file itself offers — in order of preference:
  *
@@ -17,8 +17,8 @@
  *      library builds over `user-media/shaders/fx/**`.
  *   4. a NAMED-LITERAL source read — the value is a module-local `var` with no export at
  *      all, so the only non-transcribing way to obtain it is to read the array literal out
- *      of the source by its own name. Used for exactly two: `_LF_WAVEFORM_TYPES`
- *      (`app/js/lfo-component.js`) and `_ROLE_NAME` (`app/js/formats/_sdf-math.js`).
+ *      of the source by its own name. Used for exactly two: the LFO waveform list and the
+ *      literal auditor's shared role table.
  *      ⚠ FINDING, reported rather than worked around: both are canon that a second
  *      consumer now needs, and both would be better exported. Mode 4 re-reads the real
  *      file on every load, so it cannot silently drift — but it DOES fail loudly if the
@@ -37,7 +37,7 @@ const require_ = createRequire(import.meta.url);
 
 /* ── the shapes of what we read ─────────────────────────────────────────────────── */
 
-/** A warp-op descriptor as `A8OpsCanon.OP_INPUTS` declares it (`_ops-canon.js:69`). */
+/** A warp-op descriptor as the app's own warp-op roster declares it. */
 export interface OpInput {
   NAME:string; TYPE:string; LABEL:string;
   DEFAULT:number; MIN:number; MAX:number;
@@ -46,9 +46,9 @@ export interface OpInput {
   _glyOpCompanion?:string;
   TIP?:string;
 }
-/** A shading op as `A8RaymarchOps.OPS` declares it (`_raymarch-ops.js:50`). */
+/** A shading op as the app's own raymarch roster declares it. */
 export interface RaymarchOp {
-  /** the op's stable key — it rides `card.rmOps` (`_raymarch-ops.js:50`). */
+  /** the op's stable key — it rides the card's own active-op list. */
   key:string; label?:string; hook?:string; fn?:string; identity?:number; hint?:number; tip?:string;
   /** the op's own amount bounds; `identity` is the value at which the op is OFF. */
   amt?:{DEFAULT?:number;MIN?:number;MAX?:number};
@@ -57,7 +57,7 @@ export interface RaymarchOp {
 export interface ModeDescriptor { key:string; label:string }
 export interface FxEntry { id:string; name:string; path:string; category:string }
 export interface Waveform { id:string; label:string }
-/** `_ROLE_NAME` — role key → [name prefix, the shared gloss] (`_sdf-math.js:1993`). */
+/** The literal auditor's role table — role key → [name prefix, the shared gloss]. */
 export interface RoleGloss { role:string; prefix:string; gloss:string }
 
 /** An input descriptor as the app's own roster emits it — the canonical NAME, bounds and
@@ -76,9 +76,9 @@ export interface Rosters {
   /** the full warp-op roster + the subset legal on an INJECTED (non-SDF) shader. */
   ops:{all:OpInput[]; injected:OpInput[]; injectedNames:string[]};
   raymarch:RaymarchOp[];
-  /** `A8RaymarchOps.rosterInputs(RM_BASE)` — the AMOUNT + companion descriptors under the
-   *  live per-card uniform prefix (`RM_BASE`, read from `js/formats/_sdf-swap.js:94`).
-   *  These carry `DESCRIPTION` already, so the shade stack is composable today. */
+  /** the AMOUNT + companion descriptors under the live per-card uniform prefix, as the
+   *  raymarch roster itself emits them. These carry `DESCRIPTION` already, so the shade
+   *  stack is composable today. */
   raymarchInputs:RosterInput[];
   rmBase:string;
   layers:{bgModes:ModeDescriptor[]; fillModes:ModeDescriptor[]};
@@ -95,8 +95,8 @@ export interface Rosters {
 function readCjs<T>(file:string):T { return require_(file) as T; }
 
 /** Mode 2 — evaluate an IIFE that assigns `window.<name>` and hand back that object.
- *  `seed` pre-populates the shim window for files that read a sibling canon off it
- *  (`_raymarch-ops.js` reads `window.A8OpsCanon` — its own `CANON()` accessor at :39). */
+ *  `seed` pre-populates the shim window for files that read a sibling canon off it (the
+ *  raymarch roster reads the warp-op canon through its own accessor). */
 function readWindowGlobal<T>(file:string, name:string, seed:Record<string,unknown> = {}):T {
   const win:Record<string,unknown> = {...seed};
   const stubEl = () => ({style:{}, classList:{add(){}, remove(){}, toggle(){}, contains(){return false;}},
@@ -159,8 +159,8 @@ const cache = new Map<string,Rosters>();
 
 /** `appRoot` = the live app directory (`<repo>/app`), i.e. the parent of `js/` and
  *  `user-media/`. Whatever is unreadable is REPORTED in `missing`, never defaulted to a
- *  transcription: a sampler with no roster emits no options for that stack (`jev.md` §P2.4
- *  one layer up — the run refuses rather than guesses). */
+ *  transcription: a sampler with no roster emits no options for that stack
+ *  (`docs/COMPOSER.md` §9 — the run refuses rather than guesses). */
 export function loadRosters(appRoot:string):Rosters {
   const hit = cache.get(appRoot); if (hit) return hit;
   const missing:{roster:string;reason:string}[] = [];

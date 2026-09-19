@@ -1,14 +1,12 @@
 /** Request builders — one function per decision kind, string-valued criteria throughout.
  *
- *  The upstream builder PATTERN survives whole (`roadmap/jevisualeyes-rework.md` §1.1);
- *  every string of its own domain is gone. The one structural change: the instructions and
- *  their version ids are NOT re-declared here — they are read from the roster
- *  (`axes.ts`), because §11 makes the roster the one versioned home and a second copy of
- *  a question is `CANON-VALUE-IN-PROSE` one layer down.
+ *  The instructions and their version ids are NOT declared here — they are read from the
+ *  roster (`axes.ts`), because that is the one versioned home (`docs/COMPOSER.md` §12) and
+ *  a question whose text lives in two places is a question that can change in one of them.
  *
  *  Nothing here samples anything. Candidates arrive as arguments: code enumerates, the
- *  model picks one id, code renders (`jev.md` §5). The samplers that produce them are
- *  I3's work and live in `app/core/samplers/`.
+ *  model picks one id, code renders (`docs/COMPOSER.md` §1). The samplers that produce them
+ *  are `app/core/samplers.ts`.
  */
 import type {DecisionQuestion, DecisionRequest, LookCandidate, StackId} from './types.js';
 import {AXES, INSTRUCTIONS, RATE_LADDER, STACK_AXES, STACK_LABELS,
@@ -34,7 +32,8 @@ const axisCriteria = (axisId:string):Record<string,string> =>
 
 /** CALL 1a — the axis coordinate. One independent sub-question per (stack, axis).
  *  Chunked by the caller at ≤6 per request: the encoder re-emits the state into every
- *  row, so above ~6 questions a bundle costs MORE than separate calls (`jev.md` §7.0). */
+ *  row, so above ~6 questions a bundle costs MORE than separate calls
+ *  (`docs/COMPOSER.md` §7.1). */
 export function buildAxisRequest(model:string, record:RecordState, stacks:StackId[]):DecisionRequest {
   const questions:Record<string,DecisionQuestion>={};
   for(const stack of stacks)
@@ -49,7 +48,7 @@ export function buildAxisRequest(model:string, record:RecordState, stacks:StackI
 
 /** CALL 2 — one N-way Choice per stack over COMPLETE sampled looks. Never a decomposition
  *  into independently-picked parts: twelve individually-plausible values are routinely an
- *  incoherent look (`jev.md` §5, rework §2.4). */
+ *  incoherent look (`docs/COMPOSER.md` §1). */
 export function buildLookRequest(
   model:string, record:RecordState,
   coordinate:Partial<Record<StackId,Record<string,string>>>,

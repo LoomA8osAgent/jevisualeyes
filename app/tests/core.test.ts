@@ -1,10 +1,9 @@
-/** The kernel suite, trimmed to the modules that survived the domain swap
- *  (`roadmap/jevisualeyes-rework.md` §1.1) and extended to the two other primitives.
+/** The kernel suite: canonicalization, hashing, selection, and the three primitives.
  *
- *  The canon / hash / selection tests are UPSTREAM'S, unchanged — they are the reason
- *  those files were kept verbatim, and they are what proves the strip did not touch them.
- *  The validation tests are rewritten around the three primitives and the two ruled
- *  divergences (§1.5): strict argmax, and a FIXED 1e-3 sum tolerance.
+ *  The canon / hash / selection tests are the ones that prove those files behave exactly as
+ *  `docs/COMPOSER.md` §4.4 and §5 describe. The validation tests cover the three primitives
+ *  and the two constants that are fixed on purpose (`docs/COMPOSER.md` §4.1): the STRICT
+ *  argmax rule, and a FIXED 1e-3 sum tolerance.
  */
 import {test, assert} from 'vitest';
 import {canonicalJSON} from '../core/canon.js';
@@ -25,7 +24,7 @@ const choiceQ:ChoiceQuestion={type:'choice',instructions:'pick',criteria:{a:'A',
 const noulQ:NoulQuestion={type:'noul',instructions:'does it move'};
 const scoreQ:ScoreQuestion={type:'score',instructions:'how fast',criteria:['slow','medium','fast']};
 
-/* ── canon + hash (upstream, unchanged) ─────────────────────────────────────────── */
+/* ── canon + hash ───────────────────────────────────────────────────────────────── */
 
 test('canonical JSON: object key order irrelevant, array order significant',()=>{
   assert.equal(hashJSON({a:1,b:2}),hashJSON({b:2,a:1}));
@@ -37,7 +36,7 @@ test('canonical JSON: unsafe keys, cycles, nonfinite values rejected',()=>{
   const a:any={};a.a=a;assert.throws(()=>canonicalJSON(a));
 });
 
-/* ── selection (upstream, unchanged) ────────────────────────────────────────────── */
+/* ── selection ──────────────────────────────────────────────────────────────────── */
 
 test('sampling: zero temperature tie-break is stable',()=>{
   const a={type:'choice' as const,choice:'b',probabilities:{b:.5,a:.5},confidence:.5};
@@ -59,7 +58,7 @@ test('sampling: seed zero has defined nonzero normalization',()=>{
   assert.deepEqual(nextRandom(0),nextRandom(0));assert.notEqual(nextRandom(0).seed,0);
 });
 
-/* ── validation: the three primitives (jev.md §10.1) ────────────────────────────── */
+/* ── validation: the three primitives (docs/COMPOSER.md §4.1) ───────────────────── */
 
 const choiceAnswer=(choice='a')=>({type:'choice' as const,choice,
   probabilities:{a:.7,b:.2,c:.1},confidence:.6});
@@ -106,20 +105,20 @@ test('validate: missing, extra, negative and nonfinite probabilities are rejecte
     assert.throws(()=>validateAnswer(bad,choiceQ));
   }
 });
-// DIVERGENCE 1 (§1.5) — upstream ACCEPTED a near-max non-argmax choice. We do not.
-test('validate: a non-argmax reported choice is REFUSED (the strict A8os rule)',()=>{
+// §4.1 constant 1 — a near-max but non-argmax reported choice is refused.
+test('validate: a non-argmax reported choice is REFUSED (the strict rule)',()=>{
   assert.throws(()=>validateAnswer(choiceAnswer('b'),choiceQ),/maximum-probability candidate/);
 });
 test('validate: a tie is within tolerance, so either tied key may be reported',()=>{
   const tied={type:'choice' as const,choice:'b',probabilities:{a:.5,b:.5,c:0},confidence:.5};
   assert.equal((validateAnswer(tied,choiceQ) as any).choice,'b');
 });
-// DIVERGENCE 2 (§1.5) — a FIXED 1e-3 bound, never scaled with the option count.
+// §4.1 constant 2 — a FIXED 1e-3 bound, never scaled with the option count.
 test('validate: the sum tolerance is fixed at 1e-3 regardless of menu width',()=>{
   assert.equal(SUM_TOLERANCE,1e-3);
   const drift=copy(choiceAnswer());drift.probabilities.a=.7+9e-4;     // inside 1e-3
   assert.doesNotThrow(()=>validateAnswer(drift,choiceQ));
-  const wide=copy(choiceAnswer());wide.probabilities.a=.7+5e-3;       // upstream would pass
+  const wide=copy(choiceAnswer());wide.probabilities.a=.7+5e-3;       // a scaled bound would pass
   assert.throws(()=>validateAnswer(wide,choiceQ),/sum/);
 });
 test('validate: a response answering only some of its questions is an error',()=>{

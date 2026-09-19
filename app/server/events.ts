@@ -1,11 +1,9 @@
 /** The run log. `job_events` rows are appended inside the commit transaction by the
  *  runner (they ARE the bake report); this bus notifies in-process listeners after.
  *
- *  THE SSE HALF IS GONE with the UI (`roadmap/jevisualeyes-rework.md` §1.2): `attach`,
- *  its keep-alive ping and the `Last-Event-ID` replay were the only Express coupling in
- *  the file, and jevisualeyes is a CLI tool that reports to stdout (§4). The persisted
- *  append survives; replay is `replay()` below, which reads the same rows a resumed run
- *  reads.
+ *  THERE IS NO EVENT STREAM AND NO UI (`docs/PLAN.md` §3): jevisualeyes is a CLI tool that
+ *  reports to stdout. The persisted append survives; replay is `replay()` below, which
+ *  reads the same rows a resumed run reads.
  */
 import type {DB} from './db.js';
 

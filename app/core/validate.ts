@@ -1,29 +1,24 @@
 /** Provider response validation. An unexpected distribution is an ERROR, never an
- *  excuse to improvise (`specs/ai/jev.md` §10.1).
+ *  excuse to improvise (`docs/COMPOSER.md` §4.1).
  *
- *  TWO DELIBERATE DIVERGENCES FROM UPSTREAM, both ruled in
- *  `roadmap/jevisualeyes-rework.md` §1.5:
+ *  TWO CONSTANTS ARE FIXED ON PURPOSE:
  *
- *  1. THE ARGMAX RULE IS STRICT. Upstream let a near-max but non-argmax `choice` stand,
- *     because live Jev occasionally returns one. §10.1 requires "the reported `choice`
- *     is a maximum-probability candidate within numerical tolerance", so it is enforced
- *     here. It cannot trip on `fixture` or on an in-process `local` provider; if a
- *     remote run ever trips it, that is a provider FINDING to record — not a tolerance
- *     to widen quietly.
- *  2. THE SUM TOLERANCE IS FIXED AT 1e-3. Upstream scaled it with option count
- *     (`max(1e-3, 0.005 × keys)` — measured against a 181-option menu). Our menus are
- *     ≤ 25 options (§9.1) and usually 2, so the fixed bound of §10.1 stands. The scaled
- *     bound is recorded in the plan as the measured precedent, not adopted on spec.
+ *  1. THE ARGMAX RULE IS STRICT. A near-max but non-argmax reported `choice` is REFUSED:
+ *     §4.1 requires "the reported `choice` is a maximum-probability candidate within
+ *     numerical tolerance". It cannot trip on `fixture` or on an in-process `local`
+ *     provider; if a remote run ever trips it, that is a provider FINDING to record — not
+ *     a tolerance to widen quietly.
+ *  2. THE SUM TOLERANCE IS FIXED AT 1e-3, never scaled with the option count. Menus here
+ *     are ≤ 25 options and usually 2.
  *
- *  The rule set is the same one `tools/judgment/laya-provider.js validateAnswers`
- *  enforces in the app tree; this is that contract in TypeScript, and there is exactly
- *  ONE implementation of it in this repo.
+ *  There is exactly ONE implementation of this contract in this repo — the schema files
+ *  are shape only and never stand in for it.
  */
 import {ok, isInt, isPlain, canonicalJSON} from './canon.js';
 import type {ChoiceAnswer, DecisionAnswer, DecisionQuestion, DecisionRequest,
   DecisionResponse, NoulAnswer, ScoreAnswer} from './types.js';
 
-/** Sum tolerance — §10.1, fixed. Never scaled with option count (see the header). */
+/** Sum tolerance — §4.1, fixed. Never scaled with option count (see the header). */
 export const SUM_TOLERANCE = 1e-3;
 /** Argmax tolerance: "a maximum-probability candidate within numerical tolerance". */
 export const ARGMAX_TOLERANCE = 1e-6;
@@ -66,13 +61,14 @@ export function validateAnswer(answer:unknown, question:DecisionQuestion, label=
   if(question.type==='choice'){
     const choice=(a as ChoiceAnswer).choice;
     ok(keys.includes(choice),`${label}: choice "${choice}" is not a submitted candidate`);
-    // §10.1 strict argmax — see divergence 1 in the header.
+    // §4.1 strict argmax — see the header.
     ok(maxP-probs[choice]<=ARGMAX_TOLERANCE,
       `${label}: choice "${choice}" is not a maximum-probability candidate (max is "${keys[values.indexOf(maxP)]}")`);
     return {type:'choice',choice,probabilities:normalized,confidence:conf};
   }
 
-  // L4: a Score is an ORDINAL index — the expected position on the SUBMITTED ladder.
+  // A Score is an ORDINAL index — the expected position on the SUBMITTED ladder, never a
+  // measurement (`docs/COMPOSER.md` §2).
   const score=(a as ScoreAnswer).score;
   ok(Number.isFinite(score)&&score>=0&&score<=keys.length-1,
     `${label}: score ${score} outside the submitted ladder [0,${keys.length-1}]`);
@@ -83,7 +79,7 @@ export function validateAnswer(answer:unknown, question:DecisionQuestion, label=
 }
 
 /** Validate a full provider response against the request that produced it.
- *  Every requested question, or it is an error — never a partial answer map (§10.1). */
+ *  Every requested question, or it is an error — never a partial answer map (§4.1). */
 export function validateResponse(response:DecisionResponse, request:DecisionRequest):Record<string,DecisionAnswer> {
   canonicalJSON(response);
   ok(typeof response?.model==='string'&&response.model.length>0,'Missing model');

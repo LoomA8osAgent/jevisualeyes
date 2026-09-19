@@ -1,8 +1,7 @@
 /** ONE explicitly opt-in, billable live call. No retries, no test, no gate.
  *
- *  `jev.md` §9 and `roadmap/jevisualeyes-rework.md` §3: live smoke is exactly ONE call,
- *  behind both an explicit flag AND a present key, never during install, build, the test
- *  run or any gate. The guard below is upstream's shape, kept because it is correct.
+ *  `docs/COMPOSER.md` §3.2: live smoke is exactly ONE call, behind both an explicit flag
+ *  AND a present key, never during install, build, the test run or any gate.
  *
  *  It asks the REAL axis question for one record — not an inherited fixture — so what
  *  it proves is the wire this tool actually uses.

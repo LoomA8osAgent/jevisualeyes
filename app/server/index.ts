@@ -1,14 +1,15 @@
 /** THE ENTRY: a CLI over the job runner. No Express, no static hosting, no UI.
  *
- *  jevisualeyes is an offline author-time TOOL (`roadmap/jevisualeyes-rework.md` §4): a
- *  run is a job file, the report is stdout plus the `job_events` rows, and resumability,
- *  pause and the request ceiling come free from `jobs.ts`. The composed preset is
- *  reviewed in the A8os Library on a rendered card (`jev.md` §12, THE WATCHING LAW) —
- *  never in a page this repo could grow.
+ *  jevisualeyes is an offline author-time TOOL (`docs/PLAN.md` §3): a run is a job file,
+ *  the report is stdout plus the `job_events` rows, and resumability, pause and the request
+ *  ceiling come free from `jobs.ts`. The composed preset is reviewed in the consuming app's
+ *  Library on a rendered card, by the operator's eyes — taste is the one thing a decision
+ *  model structurally cannot judge (`docs/COMPOSER.md` §11) — never in a page this repo
+ *  could grow.
  *
  *  `runUnit` is the whole API: give it a composer and one (record, tag) and it returns
  *  the composed snapshot with its receipts. The composer — what to sample and what to
- *  ask — is the domain half and arrives with the samplers (plan §5, I3/I4).
+ *  ask — is the domain half (`core/composer.ts`).
  */
 import {loadConfig, effectiveProvider, effectiveKey} from './config.js';
 import type {AppConfig} from './config.js';
@@ -27,7 +28,7 @@ import type {DecisionProvider} from '../core/types.js';
 
 export interface Runner { cfg:AppConfig; db:DB; bus:EventBus; runner:JobRunner; provider:DecisionProvider }
 
-/** Build the configured provider. There is NO silent fallback between providers (§9). */
+/** Build the configured provider. There is NO silent fallback between providers (§3.2). */
 export function buildProvider(cfg:AppConfig):DecisionProvider {
   return providerFor(cfg,effectiveProvider(cfg),effectiveKey(cfg),
     ()=>new FixtureProvider(cfg.fixturePath));
@@ -91,7 +92,7 @@ if(process.argv[1]&&process.argv[1].endsWith('index.ts')){
   if(cmd==='status')status();
   else {
     console.error(`Unknown command "${cmd}". Available: status.\n` +
-      'A bake run needs a composer (the samplers + phase machine, plan §5 I3/I4); ' +
+      'A bake run needs a composer (the samplers + phase machine, docs/PLAN.md §1); ' +
       'until it lands, drive the runner through runUnit() — see scripts/smoke-fixture.mjs.');
     process.exitCode=2;
   }

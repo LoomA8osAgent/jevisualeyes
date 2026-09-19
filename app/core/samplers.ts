@@ -1,11 +1,11 @@
 /** THE SAMPLERS — code enumerates COMPLETE looks; the model only ever picks an id.
  *
- *  `specs/ai/jev.md` §P2.2: "Code then SAMPLES. For each stack, the sampler draws N
+ *  `docs/COMPOSER.md` §7, the SAMPLE step: for each stack the sampler draws N
  *  coherent COMPLETE looks from the accepted coordinate, seeded: a full parameter vector
  *  inside every knob's [MIN, MAX], an op set drawn from the shared rosters, a layer state,
  *  an FX chain. Each candidate gets a stable id and a readable one-line description."
  *
- *  TWO RULES THIS FILE EXISTS TO ENFORCE, both from §5:
+ *  TWO RULES THIS FILE EXISTS TO ENFORCE, both from `docs/COMPOSER.md` §1:
  *
  *   1. **A candidate is valid BY CONSTRUCTION.** Every emitted value is drawn inside the
  *      knob's declared `[MIN, MAX]` and the whole look is re-checked before it is returned
@@ -16,7 +16,7 @@
  *      incoherent look, which is exactly why CALL 2 is an N-way pick over complete options
  *      rather than N sliders answered separately.
  *
- *  AND THE GATE FROM §P2.4: a knob with no situation sentence is NOT composable — it is
+ *  AND THE GATE FROM §8: a knob with no situation sentence is NOT composable — it is
  *  held at its DEFAULT and NAMED in the look's `skipped[]`. The sampler never guesses a
  *  meaning, and it never silently omits the fact that it declined to move something.
  *
@@ -83,7 +83,7 @@ const fromRoster = (
   const d = typeof def === 'number' ? def : lo;
   const sentence = (typeof description === 'string' && description.trim()) ? description.trim() : null;
   const bad = hi <= lo ? `degenerate range [${lo}, ${hi}]`
-    : !sentence ? 'no situation sentence (jev.md §P2.4)' : null;
+    : !sentence ? 'no situation sentence (docs/COMPOSER.md §8)' : null;
   return {key, name:key, label, min:lo, max:hi, default:d, bipolar:lo < 0 && hi > 0,
     description:sentence, descriptionOrigin:null, role, roleGloss:null,
     composable:bad === null, skipReason:bad};
@@ -116,7 +116,7 @@ export function stackKnobs(record:RecordDescriptor, stackId:StackId, rosters:Ros
 /* ── one readable line ──────────────────────────────────────────────────────────── */
 
 /** The endpoint form is `<what it does to the image> — <MIN end>, <MAX end>`
- *  (`specs/isf2-standard.md:330`). The HEAD (before the em-dash) is the effect; the tail
+ *  (`docs/COMPOSER.md` §8). The HEAD (before the em-dash) is the effect; the tail
  *  names the two ends. A look's line reuses the head and says WHICH end this look sits
  *  toward — which is why both halves had to be authored: without the tail the position
  *  word has nothing to name. */
@@ -220,9 +220,9 @@ export function sampleLooks(record:RecordDescriptor, stackId:StackId,
 
 function sampleLayers(rosters:Rosters, coordinate:AxisCoordinate, rnd:()=>number,
                       params:Record<string,JsonValue>):void {
-  // `_layer-canon.js:864` — the layer MODE is a per-role param (`u_bgMode` for bg,
-  // `u_L{i}_texMode` per fill layer) and its value is the INDEX into the roster's mode
-  // list (`:1088` pushes 0 to clear). A mode is an enum whose options the roster itself
+  // The layer MODE is a per-role param (`u_bgMode` for bg, `u_L{i}_texMode` per fill
+  // layer) and its value is the INDEX into the roster's own mode list (index 0 clears).
+  // A mode is an enum whose options the roster itself
   // NAMES, so choosing one guesses no meaning — it picks a line the app already wrote.
   const bg = rosters.layers.bgModes;
   if (bg.length) params['u_bgMode'] = Math.min(bg.length - 1,
@@ -231,8 +231,8 @@ function sampleLayers(rosters:Rosters, coordinate:AxisCoordinate, rnd:()=>number
 
 function sampleFx(rosters:Rosters, coordinate:AxisCoordinate, rnd:()=>number,
                   params:Record<string,JsonValue>):void {
-  // `specs/format-engines.md` §Per-card post-pass chain canon, Pattern B: the chain is a
-  // CARD-level list of `{kind, spec, enabled}` entries and the ORDER is the seed graph.
+  // The app's post-pass chain canon: the chain is a CARD-level list of
+  // `{kind, spec, enabled}` entries and the ORDER is the seed graph.
   // The entries come from the FX library manifest — never a list this repo keeps.
   const k = setSize(rnd, 2, biasOf(coordinate, ['contrast','motion']));
   params['postPassChain'] = take(rosters.fx, k, rnd).map(e => ({
@@ -244,9 +244,9 @@ function sampleModulation(record:RecordDescriptor, rosters:Rosters, coordinate:A
                           rnd:()=>number, params:Record<string,JsonValue>, skipped:string[]):void {
   // CALL 3's shape, sampled: per moving param a waveform from the LFO roster, an ordinal
   // rate LEVEL (never a rate — turning an ordinal into Hz is arithmetic, done in code, L4),
-  // and a CURATED BRACKET drawn strictly inside the knob's own domain (`jev.md` §P2.2
-  // PROPOSED: `_bind.min/max` is the performer's operating window, pushed through
-  // `sxSetRange` BEFORE the bind — `app/js/editors/_base.js:1914`).
+  // and a CURATED BRACKET drawn strictly inside the knob's own domain
+  // (`docs/COMPOSER.md` §9): the bracket is the performer's operating window, and the app
+  // applies it BEFORE the bind, so it is never an affine output range.
   const movable = record.composableKnobs;
   for (const k of record.knobs) if (!k.composable) skipped.push(k.name);
   if (!movable.length || !rosters.waveforms.length) return;
@@ -288,7 +288,8 @@ function setLineFor(stackId:StackId, coordinate:AxisCoordinate,
 
 /** Re-check a finished look against the knobs it claims to set. A value outside its
  *  knob's `[MIN, MAX]` is a SAMPLER defect and throws — it is never returned, never
- *  offered to a model, and never left for a downstream validator to catch (§5). */
+ *  offered to a model, and never left for a downstream validator to catch
+ *  (`docs/COMPOSER.md` §1). */
 export function assertLookInBounds(record:RecordDescriptor, stackId:StackId,
                                    look:LookCandidate, rosters:Rosters):void {
   const byKey = new Map(stackKnobs(record, stackId, rosters).map(k => [k.key, k]));

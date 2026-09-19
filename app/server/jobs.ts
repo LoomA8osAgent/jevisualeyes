@@ -4,24 +4,20 @@
  *  `finish()`, with an epoch + decisionIndex guard, boot recovery that NEVER auto-resumes
  *  spend, bounded retry with backoff and Retry-After, a request ceiling that PAUSES
  *  rather than fails, and ONE durable transaction per decision. That control flow is
- *  upstream's, kept verbatim in shape (`roadmap/jevisualeyes-rework.md` §1.2) because it
- *  is `docs/upstream/02 §2.6` steps 1-9, which are exactly `specs/ai/jev.md`'s loop with
- *  the nouns changed.
+ *  the composer loop of `docs/COMPOSER.md` §7, and every step of it is load-bearing there.
  *
- *  WHAT CHANGED: the unit. Upstream's unit had its menu rebuilt from the previous pick,
- *  which is why it spent ~75-80 calls on one piece; ours is ONE (record, tag)
- *  composition, and a preset is not a sequence (rework §2.2). So the `switch (pending.kind)` arms are
- *  `axes` / `looks` / `motion`, and the lane scheduler is gone: our stacks are
- *  independent given the coordinate, so they ride ONE bundled request (`jev.md` §7)
- *  rather than a scheduler.
+ *  THE UNIT is ONE (record, tag) composition. A preset is not a sequence, so nothing inside
+ *  a unit chains except the two real menu-rebuilds: the `switch (pending.kind)` arms are
+ *  `axes` / `looks` / `motion`, and there is no scheduler, because the stacks are
+ *  independent given the coordinate and ride ONE bundled request (`docs/COMPOSER.md` §7).
  *
  *  WHAT PRODUCES THE STEPS: a `Composer`, injected. This module owns persistence, retry,
  *  validation, selection, receipts and the transaction; it owns NO sampling. Code
- *  enumerates, the model picks one id, code renders (`jev.md` §5) - and the enumerating
- *  half is the composer's, so that the samplers (I3) and this spine can never drift into
- *  each other.
+ *  enumerates, the model picks one id, code renders (`docs/COMPOSER.md` §1) - and the
+ *  enumerating half is the composer's, so that the samplers and this spine can never drift
+ *  into each other.
  *
- *  §10.2 IS STRUCTURAL HERE: the model's returned key is LOOKED UP in the persisted
+ *  §4.2 IS STRUCTURAL HERE: the model's returned key is LOOKED UP in the persisted
  *  candidate map and its recorded effect applied. A model-supplied string is never parsed
  *  as a param name, a path or anything else.
  */
@@ -42,7 +38,7 @@ import type {EventBus} from './events.js';
 export const newId = (p:string) => `${p}_${randomBytes(9).toString('base64url')}`;
 const now = () => new Date().toISOString();
 
-/** One decision the composer wants made. `candidates` is the persisted map (§10.2). */
+/** One decision the composer wants made. `candidates` is the persisted map (§4.2). */
 export interface ComposerStep {
   kind:DecisionKind;
   request:DecisionRequest;
@@ -51,7 +47,7 @@ export interface ComposerStep {
   extra?:JsonValue;
 }
 /** The domain half: what to ask next, given the draft so far. `null` = the unit is done.
- *  Implemented by the samplers (I3) and the composer (I4). */
+ *  Implemented by `core/samplers.ts` + `core/composer.ts`. */
 export interface Composer {
   id:string;
   version:string;
@@ -215,7 +211,7 @@ export class JobRunner {
     }
   }
 
-  /** Persist the exact pending payload BEFORE the network call (upstream §2.6 step 6).
+  /** Persist the exact pending payload BEFORE the network call (`docs/COMPOSER.md` §7).
    *  It is what makes a crashed bake resumable and a receipt honest. */
   private persistPending(job:Job,step:ComposerStep):Pending {
     const row=this.db.prepare(`SELECT * FROM pending_decisions WHERE job_id=? AND decision_index=? AND accepted_receipt_json IS NULL`)
@@ -401,7 +397,7 @@ export class JobRunner {
   }
 
   /** A (record, tag) is exposed only when every one of its decisions committed
-   *  (upstream §2.6 step 9 — expose only COMPLETE snapshots). */
+   *  (`docs/COMPOSER.md` §7 — expose only COMPLETE snapshots). */
   private finish(job:Job):void {
     this.db.transaction(()=>{
       job.rt.phase='done';this.persist(job,'completed');

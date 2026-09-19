@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "a8os.jev.decision-request.v1",
-  "title": "Decision request — specs/ai/jev.md §1.1 + §1.2",
-  "description": "Extended from Choice-only to the three primitives (noul | choice | score). One state, N questions, evaluated INDEPENDENTLY (L7).",
+  "title": "Decision request — docs/COMPOSER.md §2",
+  "description": "Extended from Choice-only to the three primitives (noul | choice | score). One state, N questions, evaluated INDEPENDENTLY — they cannot see one another's answers, which is the whole basis of the bundling rule (docs/COMPOSER.md §7).",
   "type": "object",
   "required": ["model", "state", "questions"],
   "additionalProperties": false,

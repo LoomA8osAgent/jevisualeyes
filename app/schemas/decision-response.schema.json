@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "a8os.jev.decision-response.v1",
-  "title": "Decision response — specs/ai/jev.md §1.2 + §10.1",
-  "description": "SHAPE only. The binding checks in §10.1 are RELATIONAL — probability keys equal the submitted candidate keys, the sum is 1 ± 1e-3, and the reported choice is a maximum-probability candidate — and no schema can express them against the request. core/validate.ts is the enforcing implementation; this file never stands in for it.",
+  "title": "Decision response — docs/COMPOSER.md §2 + §4.1",
+  "description": "SHAPE only. The binding checks in docs/COMPOSER.md §4.1 are RELATIONAL — probability keys equal the submitted candidate keys, the sum is 1 ± 1e-3, and the reported choice is a maximum-probability candidate — and no schema can express them against the request. core/validate.ts is the enforcing implementation; this file never stands in for it.",
   "type": "object",
   "required": ["model", "answers", "usage"],
   "additionalProperties": true,

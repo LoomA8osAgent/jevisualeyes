@@ -1,14 +1,12 @@
 /** The HTTP decision provider: raw fetch, bounded body, NO retry layer here — retry is
- *  the runner's, and there is exactly ONE of them (`specs/ai/jev.md` §10.4).
+ *  the runner's, and there is exactly ONE of them (`docs/COMPOSER.md` §4.3).
  *
- *  ONE CLASS SERVES BOTH `local` AND `jev` because they speak the SAME wire (§1.1
- *  `POST <base>/v1/systemone`): the reference runtime is served over it by
- *  `von serve` (§9.4), and ~10 independent projects expose that exact route (§3.1). The
- *  only change of substance from upstream is that the endpoint was a hardcoded const and
- *  is now configuration (`roadmap/jevisualeyes-rework.md` §3).
+ *  ONE CLASS SERVES BOTH `local` AND `jev` because they speak the SAME wire
+ *  (`POST <base>/v1/systemone`, `docs/COMPOSER.md` §2): the local runtime is served over it
+ *  by `von serve`, the remote endpoint is the same route, and which one is built is
+ *  configuration (`docs/COMPOSER.md` §3).
  *
- *  The retryable status set — 408 429 500 502 503 504 529 — is upstream's and matches
- *  §10.4 exactly; it is kept verbatim.
+ *  The retryable status set — 408 429 500 502 503 504 529 — is §4.3's, exactly.
  */
 import {createHash} from 'node:crypto';
 import type {DecisionProvider, DecisionRequest, ProviderClass, ProviderReceipt} from '../core/types.js';
@@ -46,7 +44,7 @@ export class HttpDecisionProvider implements DecisionProvider {
 
   async decide(request:DecisionRequest, signal:AbortSignal):Promise<ProviderReceipt> {
     const body = JSON.stringify(request);
-    // §10.3 — the ceiling is enforced BEFORE the call. An over-ceiling request is
+    // §4.3 — the ceiling is enforced BEFORE the call. An over-ceiling request is
     // rebuilt from current state by the caller, never truncated and never replayed.
     if (Buffer.byteLength(body,'utf8') > this.cfg.maxProviderBodyBytes)
       throw new ProviderError('Request exceeds application payload ceiling',
@@ -107,7 +105,7 @@ export class HttpDecisionProvider implements DecisionProvider {
   }
 }
 
-/** Build the configured provider. NEVER a silent fallback between providers (§9) —
+/** Build the configured provider. NEVER a silent fallback between providers (§3.2) —
  *  a misconfigured `jev` throws rather than quietly becoming `fixture`, and a failing
  *  `local` is an error the run reports, not a degraded mode. */
 export function providerFor(cfg:AppConfig, providerId:string, key?:string,

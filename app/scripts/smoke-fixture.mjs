@@ -1,14 +1,14 @@
-/** THE I1+I2 SMOKE — one Noul, one Choice and one Score through the whole seam:
- *  fixture provider -> provider contract -> §10.1 validation -> selection -> ONE durable
+/** THE SEAM SMOKE — one Noul, one Choice and one Score through the whole seam:
+ *  fixture provider -> provider contract -> §4.1 validation -> selection -> ONE durable
  *  transaction -> a receipt persisted in SQLite, then read back.
  *
- *  ZERO network, zero model. It is the ONE comparison this increment owes: the kernel
- *  still behaves with the upstream domain removed, and the strict validator REFUSES a
- *  planted-bad answer with its reasons printed — because a validator that has never
- *  refused is indistinguishable from one that cannot (plan §5, I2 acceptance).
+ *  ZERO network, zero model. It is the ONE comparison the provider increment owes: the
+ *  seam holds end to end, and the strict validator REFUSES a planted-bad answer with its
+ *  reasons printed — because a validator that has never refused is indistinguishable from
+ *  one that cannot (`docs/PLAN.md` §1, I2 acceptance).
  *
- *  The composer here is TEST MATERIAL, not a shipped stub: the real one (samplers +
- *  phase machine) is I3/I4. It exists so the spine can be driven before it exists.
+ *  The composer here is TEST MATERIAL, not a shipped stub: the real one is
+ *  `core/composer.ts`. It exists so the spine can be driven independently of it.
  *
  *    node --run smoke:fixture      (or: npx tsx scripts/smoke-fixture.mjs)
  */

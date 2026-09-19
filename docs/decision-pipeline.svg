@@ -80,7 +80,7 @@
     <text x="22" y="384" class="lbl">Resulting coordinate</text>
     <text x="22" y="400" class="p">motion slow · density medium · contrast soft · palette cool</text>
     <text x="22" y="414" class="p">symmetry 2-fold · depth lit</text>
-    <text x="22" y="434" class="ann">No genre names anywhere: a style is a point on these axes.</text>
+    <text x="22" y="434" class="ann">No style labels anywhere: a look is a point on these axes.</text>
     <text x="22" y="448" class="ann">Ladders are ORDINAL situations, never numbers — code maps them.</text>
   </g>
 

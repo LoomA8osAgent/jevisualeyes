@@ -1,10 +1,10 @@
 /** Runner configuration: env + a `.env` file + a 0600 stored-settings file.
  *  Secrets never leave this process and are never written to the repo.
  *
- *  THE DEFAULT POSTURE INVERTS from upstream (`roadmap/jevisualeyes-rework.md` §3): the
- *  default provider is `local` — the reference runtime served over the Jev wire on
- *  loopback (`specs/ai/jev.md` §9.4) — not the remote endpoint. `jev` is opt-in and
- *  needs the operator's own key from the environment, never a repo file.
+ *  THE DEFAULT PROVIDER IS `local` — an open-weight decision model on this machine, served
+ *  over the same wire on loopback (`docs/COMPOSER.md` §3) — never the remote endpoint.
+ *  `jev` is opt-in and needs the operator's own key from the environment, never a repo
+ *  file.
  */
 import {existsSync, readFileSync, writeFileSync, mkdirSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -28,15 +28,15 @@ export type ProviderId = 'local'|'jev'|'fixture';
 export interface AppConfig {
   dataDir:string;
   providerId:ProviderId;
-  /** `local`: the reference runtime, `von serve --host 127.0.0.1 --port 8493` (§9.4). */
+  /** `local`: the on-device runtime, `von serve --host 127.0.0.1 --port 8493` (§3). */
   localBaseUrl:string; localModel:string; localClass:ProviderClass;
-  /** `jev`: the upstream endpoint (§1.1). Opt-in, key from the environment only. */
+  /** `jev`: the remote endpoint (§3). Opt-in, key from the environment only. */
   jevBaseUrl:string; jevModel:string;
-  /** `fixture`: a path to the planted answer map (§9). A missing map is an error. */
+  /** `fixture`: a path to the planted answer map (§3.2). A missing map is an error. */
   fixturePath:string;
   /** THE LIVE APP TREE — the parent of `js/` and `user-media/`. Everything the composer
    *  reads about the domain comes from here and NOTHING is transcribed into this repo
-   *  (`SHARED-CANON-DUPLICATED-PER-ENGINE`): the record descriptors, the warp-op roster,
+   *  (`docs/COMPOSER.md` §9): the record descriptors, the warp-op roster,
    *  the raymarch roster, the layer modes, the FX manifest, the LFO waveforms. Default is
    *  the sibling checkout; a different tree is one env var. */
   appRoot:string;
@@ -44,7 +44,7 @@ export interface AppConfig {
   shapesIndex:string;
   maxJobAttempts:number; maxProviderBodyBytes:number;
   providerAttemptTimeoutMs:number; providerMaxAttemptsPerDecision:number;
-  /** One explicitly authorized live call; never set during a test or a gate (§3). */
+  /** One explicitly authorized live call; never set during a test or a gate (§3.2). */
   liveJev:boolean;
   version:string;
 }
@@ -59,11 +59,11 @@ export function loadConfig():AppConfig {
     dataDir: env.DATA_DIR || join(APP_ROOT,'data'),
     providerId: providerFromEnv(env.JEV_PROVIDER) ?? 'local',
     // ⚠ loopback is explicit and binding: `von serve` defaults to 0.0.0.0, which is a
-    // LAN-exposed decision server with no auth (§9.4a). A8os only ever speaks to
-    // 127.0.0.1, and the launcher passes --host 127.0.0.1 (§Privacy — loopback only).
+    // LAN-exposed decision server with no auth (`docs/COMPOSER.md` §3). This tool only ever
+    // speaks to 127.0.0.1, and the launcher passes --host 127.0.0.1.
     localBaseUrl: env.JEV_LOCAL_URL || 'http://127.0.0.1:8493',
     localModel: env.JEV_LOCAL_MODEL || 'von-latest',
-    // §3.1a — only a TRAINED provider's NUMBER is a calibrated confidence. The reference
+    // §3.1 — only a TRAINED provider's NUMBER is a calibrated confidence. The local
     // runtime is TRAINED; a DECODE server put behind this URL must SAY so, because the
     // receipt records the class and an artifact must never read as calibrated when it
     // is not.
@@ -99,7 +99,7 @@ export function effectiveKey(cfg:AppConfig):string|undefined {
 }
 export const hasEnvKey = () => !!env.TYPESAFE_API_KEY;
 /** Env wins; otherwise the operator's stored choice; otherwise the local default.
- *  There is NO silent fallback between providers (§9): a failing `local` does not fall
+ *  There is NO silent fallback between providers (§3.2): a failing `local` does not fall
  *  through to `fixture`, and choosing `fixture` is explicit configuration. */
 export function effectiveProvider(cfg:AppConfig):ProviderId {
   return providerFromEnv(env.JEV_PROVIDER) ?? readStored(cfg).providerId ?? cfg.providerId;

@@ -1,14 +1,14 @@
 /** THE CANDIDATE MAP — what is persisted before the call, and what a chosen id resolves
  *  against afterwards.
  *
- *  Upstream's loop (restated at `roadmap/jevisualeyes-rework.md` §1.4 steps 5–7, and
- *  enforced structurally in `server/jobs.ts`): enumerate 2–255 candidates ALL of which are
+ *  The spine's loop (`docs/COMPOSER.md` §7, enforced structurally in `server/jobs.ts`):
+ *  enumerate 2–255 candidates ALL of which are
  *  valid, **persist the exact pending payload BEFORE the network call**, then call,
  *  validate, and select by the recorded policy. This module is the generalised middle of
  *  that: sampled looks in, the string-valued criteria map out, and the same candidate
  *  array kept beside it so the returned key can be LOOKED UP rather than interpreted.
  *
- *  `specs/ai/jev.md` §10.2 is the rule this exists to make structural: **the model's
+ *  `docs/COMPOSER.md` §4.2 is the rule this exists to make structural: **the model's
  *  returned key is looked up in the persisted candidate map and its recorded effect
  *  applied.** A model-supplied string is never parsed as a param name, a path, or
  *  anything else. `resolveLook` is that lookup and it is the only way in.
@@ -18,7 +18,8 @@
  *  roster source, a changed role→axis placement, a changed id form — because a receipt
  *  whose candidate map cannot be regenerated is a receipt that cannot be audited.
  *  `ROSTER_VERSION` (`axes.ts`) is the twin for the QUESTION text and menus; the two move
- *  independently on purpose, and the I3 sampler tables are covered by THIS one.
+ *  independently on purpose, and the sampler tables are covered by THIS one
+ *  (`docs/COMPOSER.md` §12).
  */
 import {ok} from './canon.js';
 import {hashJSON} from './hash.js';
@@ -51,7 +52,7 @@ export interface CandidateMap {
   /** stacks that produced fewer than 2 options, with why. A single-option menu is not a
    *  decision and is never asked (`requests.ts buildLookRequest` drops it) — but it is
    *  REPORTED here, because a stack silently missing from a bundle is how a capability
-   *  disappears without anyone noticing (`GATE-FAILS-OPEN`). */
+   *  disappears without anyone noticing (`docs/COMPOSER.md` §1). */
   notAsked:{stack:StackId;reason:string}[];
   version:string;
   /** hash of the persisted map — the receipt's `candidateHash` is taken over this shape. */
@@ -84,7 +85,7 @@ export function buildCandidateMap(record:RecordDescriptor,
           hash:hashJSON(candidates)};
 }
 
-/** §10.2 — THE lookup. A key the map does not carry is refused, loudly: it is either a
+/** §4.2 — THE lookup. A key the map does not carry is refused, loudly: it is either a
  *  provider returning something outside the submitted set (which the validator should have
  *  caught) or a map/receipt mismatch, and neither may be papered over. */
 export function resolveLook(map:{candidates:Record<string,LookCandidate[]>},

@@ -1,20 +1,16 @@
-/** The `fixture` DecisionProvider — `specs/ai/jev.md` §9.
+/** The `fixture` DecisionProvider — `docs/COMPOSER.md` §3.2.
  *
- *  THE UPSTREAM FIXTURE IS DELETED, NOT PORTED (`roadmap/jevisualeyes-rework.md` §1.2).
- *  It INFERRED its answer from the state through a genre keyword table; A8os canon
- *  forbids that. §9, verbatim intent: "the fixture is TOLD what to answer, so a planted
- *  bad input produces a planted bad answer and the gate's own logic is what is under
- *  test." A fixture that inferred its answer from the state would be a second, worse
- *  model, and the thing under test would no longer be the code.
+ *  THE FIXTURE IS TOLD WHAT TO ANSWER AND NEVER INFERS ONE FROM THE STATE. A planted bad
+ *  input produces a planted bad answer, so the code's own logic is what is under test; a
+ *  fixture that inferred would be a second, worse model, and the thing under test would no
+ *  longer be the code.
  *
- *  THIS IS THE PLANTED-MAP SHAPE of `tools/judgment/fixture-provider.js` in the A8os app
- *  tree — same map format, same "a missing map is an ERROR" rule, same `synthetic` stamp,
- *  same "the fixture passes the SAME validation the real provider does". It is expressed
- *  in TypeScript here because the two live in SEPARATE REPOSITORIES and there is no
- *  module path between them; the §10.1 validator it calls is this repo's own
- *  `core/validate.ts`, so there remains exactly ONE validation implementation here.
+ *  It shares its map format, its "a missing map is an ERROR" rule and its `synthetic` stamp
+ *  with the consuming app's own fixture provider. The validator it calls is this repo's own
+ *  `core/validate.ts`, so there remains exactly ONE validation implementation here — the
+ *  fixture passes the SAME checks a real provider does.
  *
- *  It is NEVER a silent fallback (§9): a failing `local` provider does not fall through
+ *  It is NEVER a silent fallback (§3.2): a failing `local` provider does not fall through
  *  to this one. Choosing it is explicit configuration (`JEV_PROVIDER=fixture`).
  *
  *  The map, loaded from the configured path:
@@ -41,8 +37,8 @@ export class FixtureError extends Error {
 interface FixtureMap { default?:number; answers?:Record<string,string|number|boolean> }
 
 /** A missing file is an ERROR, not an empty map: a fixture that silently answered
- *  `default` to everything because its map was mis-pathed would be the GATE-FAILS-OPEN
- *  shape inside the very thing built to prevent it. */
+ *  `default` to everything because its map was mis-pathed would be the fail-open shape
+ *  inside the very thing built to prevent it. */
 function loadMap(path:string):FixtureMap {
   if(!path) throw new FixtureError('JEV_FIXTURE is not set — the fixture provider has no map to answer from');
   let raw:string;
@@ -73,8 +69,8 @@ export function confidenceFromProbs(p:number[]):number {
 
 export class FixtureProvider implements DecisionProvider {
   readonly id='fixture';
-  readonly providerClass='FIXTURE' as const;   // §3.1a — neither TRAINED nor DECODE
-  readonly provenance='synthetic' as const;    // §8 — stamped on every receipt
+  readonly providerClass='FIXTURE' as const;   // §3.1 — neither TRAINED nor DECODE
+  readonly provenance='synthetic' as const;    // §5 — stamped on every receipt
   readonly modelId:string;
   private map:FixtureMap|null=null;
 
@@ -121,10 +117,10 @@ export class FixtureProvider implements DecisionProvider {
       }
     }
 
-    // The fixture passes the SAME §10.1 validation the real provider does.
+    // The fixture passes the SAME §4.1 validation the real provider does.
     for(const [qid,q] of Object.entries(request.questions)){
       try { validateAnswer(answers[qid],q,qid); }
-      catch(e:any){ throw new FixtureError(`fixture: §10.1 validation failed on its own output: ${e?.message||e}`); }
+      catch(e:any){ throw new FixtureError(`fixture: §4.1 validation failed on its own output: ${e?.message||e}`); }
     }
 
     const response={model:this.modelId,answers,usage:{input_tokens:0,output_tokens:0}};

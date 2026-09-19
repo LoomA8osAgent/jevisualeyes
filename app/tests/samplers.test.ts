@@ -1,4 +1,4 @@
-/** I3's ONE proof: for ONE record, every sampled look lies inside every knob's declared
+/** THE SAMPLER'S ONE PROOF: for ONE record, every sampled look lies inside every knob's declared
  *  bounds, carries a stable id and a readable one-line description, and NAMES every knob
  *  it declined to move.
  *
@@ -6,24 +6,21 @@
  *  (the 26 tests beside this file); what is new here is the sampler, so what is asserted
  *  here is the sampler's two contracts and nothing else:
  *
- *    · validity is a property of the GENERATOR (`jev.md` §5) — asserted positively over
+ *    · validity is a property of the GENERATOR (`docs/COMPOSER.md` §1) — asserted positively over
  *      every drawn value, and FALSIFIED once by handing the guard a look that violates a
  *      bound and requiring it to throw. A guard that has never refused is indistinguishable
  *      from one that cannot.
- *    · a knob with no situation sentence is not composable (`jev.md` §P2.4) — asserted as
+ *    · a knob with no situation sentence is not composable (`docs/COMPOSER.md` §8) — asserted as
  *      an EXACT set equality against the descriptor, so neither a silent skip nor a silent
  *      guess can pass.
  *
  *  THE SUBJECT. The test scans the live descriptor index for a record with ≥3 composable
- *  knobs and uses it. **Today there are none** — the index carries DEFAULT/MIN/MAX/LABEL
- *  and no `DESCRIPTION` at all, so the sentence lift (`roadmap/jevisualeyes-rework.md` §8
- *  risk 1) has not landed and 0 of 495 records are composable. Until it does, the subject
- *  is a real record whose real bounds are used verbatim and whose sentences are LIFTED —
- *  not invented — from the comments the record's own source already carries beside each
- *  input (`visualeyes/research/sdf-records/crystals/crystals.records.js:736-757`, bucket A
- *  of the knob-comment census). The moment the lift lands the scan finds a real record and
- *  the plant is bypassed, which is the point: this test is written against the shape the
- *  lift produces, not around its absence.
+ *  knobs and uses it. The sentence lift (`docs/PLAN.md` §2 risk 1) has now landed for the
+ *  mechanical buckets, so the scan finds a real record and the plant below is bypassed —
+ *  which is exactly what it was written for. The plant remains as the fallback for a tree
+ *  where the lift has not landed: a real record whose real bounds are used verbatim and
+ *  whose sentences are LIFTED — not invented — from the comments the record's own source
+ *  already carries beside each input (bucket A of the knob census).
  */
 import {test, assert} from 'vitest';
 import {existsSync} from 'node:fs';
@@ -46,7 +43,7 @@ const index = loadRecordIndex(cfg.shapesIndex, cfg.appRoot);
 
 /** Sentences LIFTED verbatim-in-substance from the record source's own input comments,
  *  compressed to the endpoint form `<effect> — <MIN end>, <MAX end>`
- *  (`specs/isf2-standard.md:330`). A test plant, not authored canon. */
+ *  (`docs/COMPOSER.md` §8). A test plant, not authored canon. */
 const LIFTED:Record<string,string> = {
   grainDensity: 'how fine the grain network reads — few large polygons, a dense microstructure of many small grains',
   grainDisorder:'how far the cells wander off the perfect honeycomb — an exact relaxed honeycomb, cells stretched sheared and uneven like an etched section',
