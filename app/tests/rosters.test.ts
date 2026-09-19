@@ -29,7 +29,9 @@ import {loadConfig} from '../server/config.js';
 import {clearRosterCache, curveShape, loadRosters, rostersArtifactPath} from '../core/rosters.js';
 import {MOTION_FEELING, easingFamiliesForFeeling, easingFamiliesForMotion,
   feelingsForEasingFamily} from '../core/axes.js';
-import {movementOptions} from '../core/samplers.js';
+import {movementOptions, stackKnobs} from '../core/samplers.js';
+import type {Rosters, OpInput} from '../core/rosters.js';
+import type {RecordDescriptor} from '../core/records.js';
 
 const cfg = loadConfig();
 const FIXTURE = fileURLToPath(new URL('./fixtures/rosters.json', import.meta.url));
@@ -71,16 +73,80 @@ test('the export\'s source hashes surface as provenance (§5)', () => {
 test('an ABSENT bundle is REPORTED, and every menu that needed it is empty (falsification)', () => {
   const r = loadRosters(cfg.appRoot, ABSENT);
   const named = r.missing.map(m => m.roster).sort();
-  for (const roster of ['rosters.json','waveforms','easings','rmBase'])
+  for (const roster of ['rosters.json','waveforms','easings','rmBase',
+                        'material','lighting','raymarchInputs'])
     assert.include(named, roster, `${roster} must name itself in missing[]`);
   for (const m of r.missing) assert.ok(m.reason.trim().length > 0, `${m.roster}: a reason, not a flag`);
   assert.deepEqual(r.waveforms, []);
   assert.deepEqual(r.easings, []);
   assert.equal(r.rmBase, '');
+  assert.deepEqual(r.material, []);
+  assert.deepEqual(r.lighting, []);
+  assert.deepEqual(r.raymarchInputs, []);
   assert.equal(r.provenance, null, 'no bundle ⇒ no provenance, never a fabricated one');
   // The rosters that do NOT come from the bundle are unaffected — a missing artifact empties
-  // its own menus and nothing else.
+  // its own menus and nothing else. `ops` is unaffected on purpose: it stays on Mode 1
+  // (`require()` of `_ops-canon.js`), the preferred mode, because that read already carries
+  // DESCRIPTION on every entry — swapping it for the bundle would buy nothing and would drop
+  // `INJECTED_OP_NAMES`, which the bundle does not export.
   assert.notInclude(named, 'ops');
+});
+
+/* ── the shared canons: material / lighting / raymarchOps, read Mode 3 ───────────────
+ *
+ *  These three used to be Mode-2 window-global evaluations of `_mesh-material.js`
+ *  (itself seeding `_point-line-texture.js` + `_texmapping-canon.js`) / `_lighting.js` /
+ *  `_raymarch-ops.js`. The export now carries their resolved descriptor rows directly, so
+ *  what is asserted here is the SEAM: the bundle's own rows arrive unmodified, and an
+ *  absent bundle empties all three menus (covered above) rather than falling back to a
+ *  stale window-global read. */
+
+test('material / lighting / raymarchInputs arrive from `shared.*` exactly as the export wrote them', () => {
+  assert.equal(fixture.material.length, 2);
+  assert.equal(fixture.lighting.length, 2);
+  assert.equal(fixture.raymarchInputs.length, 2);
+  assert.deepEqual(fixture.material.map(m => m.NAME), ['materialType','matEmissiveR']);
+  assert.deepEqual(fixture.lighting.map(l => l.NAME), ['light1Enabled','light1Type']);
+  assert.deepEqual(fixture.raymarchInputs.map(i => i.NAME), ['rm_ao','rm_ao_radius']);
+  // material/lighting carry TIP, not the endpoint-form DESCRIPTION, today — reported, not
+  // assumed (`docs/COMPOSER.md` §8).
+  for (const m of fixture.material) assert.equal(m.DESCRIPTION, undefined);
+  for (const l of fixture.lighting) assert.equal(l.DESCRIPTION, undefined);
+  // raymarchOps carries DESCRIPTION already, endpoint-form on at least one entry.
+  assert.match(fixture.raymarchInputs[0].DESCRIPTION ?? '', / — /);
+});
+
+/* ── the DESCRIPTION-over-TIP rule (`samplers.ts stackKnobs` case 'mathops') ──────────
+ *
+ *  Three synthetic op entries — one with both fields, one with TIP only, one with
+ *  neither — assert the rule directly: DESCRIPTION wins when present, TIP is the legacy
+ *  fallback, and a knob with neither is not composable. A synthetic `Rosters` is used so
+ *  this is a proof about the RULE, not about which entries the live app happens to carry
+ *  (the live-composability count is a separate, reported measurement — see samplers.test.ts). */
+
+function opWith(name:string, opts:{description?:string; tip?:string}):OpInput {
+  return {NAME:name, TYPE:'float', LABEL:name, DEFAULT:0, MIN:0, MAX:1, _groupId:'symmetry',
+    DESCRIPTION:opts.description, TIP:opts.tip};
+}
+
+test('mathops: DESCRIPTION wins over TIP; TIP is the fallback; neither is not composable', () => {
+  const ops:OpInput[] = [
+    opWith('u_both', {description:'has both — a, b', tip:'legacy tip for both'}),
+    opWith('u_tipOnly', {tip:'legacy tip only'}),
+    opWith('u_neither', {})
+  ];
+  const synthetic:Rosters = {...fixture, ops:{all:ops, injectedNames:ops.map(o=>o.NAME), injected:ops}};
+  const knobs = stackKnobs({} as RecordDescriptor, 'mathops', synthetic);
+  const byName = new Map(knobs.map(k => [k.name, k]));
+  assert.equal(byName.get('u_both')!.description, 'has both — a, b',
+    'DESCRIPTION wins even when TIP is also present');
+  assert.equal(byName.get('u_both')!.composable, true);
+  assert.equal(byName.get('u_tipOnly')!.description, 'legacy tip only',
+    'TIP is the fallback when there is no DESCRIPTION');
+  assert.equal(byName.get('u_tipOnly')!.composable, true);
+  assert.equal(byName.get('u_neither')!.description, null);
+  assert.equal(byName.get('u_neither')!.composable, false,
+    'a knob with neither DESCRIPTION nor TIP is not composable (docs/COMPOSER.md §8)');
 });
 
 test('the default path is where the app writes it, and is what an unconfigured load reads', () => {

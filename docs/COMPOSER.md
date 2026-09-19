@@ -470,6 +470,19 @@ in one place, so a bad role sentence is fixed once for every knob it names. `pro
 not, for the same reason a synthetic receipt is never laundered — the rule applied one layer
 earlier, to the question's own state rather than to the answer.
 
+**`DESCRIPTION` over `TIP`.** Where a roster row still carries only its pre-`DESCRIPTION` `TIP`
+field (a shorter, non-endpoint-form guide the app already had), the situation sentence is
+`DESCRIPTION ?? TIP` — `DESCRIPTION` wins whenever present, `TIP` is a legacy fallback and
+never authored fresh (`app/core/samplers.ts` case `'mathops'`). This is why the warp-op roster
+went from 1/20 to 20/20 composable on the `mathops` stack the day its `DESCRIPTION` lift
+landed: the roster's `TIP` had covered only one of the twenty injected ops, its `DESCRIPTION`
+covers all twenty. A composable count is a **measurement against the current export, never a
+fixed number** — the mesh-material and light-rig rosters carried `TIP` only as of the export
+generated `2026-09-19T15:00Z`, then landed full `DESCRIPTION` coverage the same day (export
+`2026-09-19T20:50Z`: `material` 16/18 composable, `lighting` 30/45 — the remainder held back
+by the `MIN`/`MAX` gate on enum rows like `materialType`, not by a missing sentence). Re-run
+`stackKnobs` against the live bundle rather than citing a number from this file.
+
 **Measured state of the debt (index generated 2026-09-19T10:00Z).** The descriptor carries
 `DEFAULT / MIN / MAX / LABEL` on every input and `BIPOLAR` on 247 of them. **The mechanical
 lift has landed: 1,479 of 3,844 knobs (38.5%) now carry a `DESCRIPTION`, across 278 of the 495
@@ -512,9 +525,14 @@ by editing this repo.
 a pure-raymarch record has no mesh material or three.js light rig to set. Both answer a single
 axis each (`contrast` for the material's gloss/roughness reading, `warmth` for the light rig's
 colour temperature) — deliberately, since both already carry full §6/§6.1 vocabulary, so
-nothing was added to the axis tables. **Their descriptor roster carries `TIP`, not the
-endpoint-form `DESCRIPTION` §8 requires**, so both read as 0% composable today — the same
-honest debt shape as bucket C, reported by `stackKnobs`/`Knob.skipReason` and never guessed at.
+nothing was added to the axis tables. **Their descriptor rosters read `DESCRIPTION ?? TIP`**
+(§8.1) like every other roster — carried `TIP` only through the export generated
+`2026-09-19T15:00Z`, so 0% composable was the correct reading through that point; the
+`DESCRIPTION` lift landed the same day (export `2026-09-19T20:50Z`), and composability is now
+16/18 (`material`) and 30/45 (`lighting`), the rest held back by the range gate on enum rows
+(`materialType`, `light1Type`) rather than a missing sentence. Reported by
+`stackKnobs`/`Knob.skipReason` against the live export, never guessed at or cited as a fixed
+number.
 
 ⚠ **Two `_groupId` families the operator named are NOT wired here, surfaced rather than
 resolved.** `color`/`sub:palette` knobs exist but are scattered per-engine source with no
@@ -563,18 +581,29 @@ file every run so it cannot silently drift, and fails loudly if the literal is r
 **Whatever is unreadable is REPORTED in `missing`, never defaulted to a transcription** — a
 sampler with no roster emits no options for that stack.
 
-**THE ROSTER BUNDLE — mode 3, and half of the named-literal finding now closed.** Mode 4 used
-to serve two values that had no export anywhere: the LFO waveform bank and the per-card
+**THE ROSTER BUNDLE — mode 3, growing to cover the window-global reads too.** Mode 4 used to
+serve two values that had no export anywhere: the LFO waveform bank and the per-card
 raymarch-op uniform prefix. Both are now EXPORTED by the app's own roster exporter into
 `user-media/shapes/rosters.json`, together with the **easing library, each entry carrying its
 family, its label, the declarative definition the app's own resolver switches on, and its curve
-SAMPLED at 65 points of t ∈ [0,1] by that same resolver**. The composer reads the bundle
-(`app/core/rosters.ts:206`) and the old named-literal reads are **deleted, not kept as a
-fallback** — a fallback would let a stale or absent export pass unnoticed, which is the one
-thing the loud failure was protecting. An absent bundle is reported under every roster that
-needed it, so `missing` names which MENU is empty rather than merely which file is. One
-named-literal read remains — the literal auditor's shared role table — and it is the same
-finding, still open.
+SAMPLED at 65 points of t ∈ [0,1] by that same resolver** — and, under `.shared`, the resolved
+descriptor rows for the raymarch shading-op roster, the mesh-material roster and the light-rig
+roster, each one **byte-equivalent to what evaluating the app's own IIFE used to produce**
+(verified field-for-field before the switch). Those three Mode-2 reads are RETIRED — including
+the two sibling canons (`_point-line-texture.js`, `_texmapping-canon.js`) `_mesh-material.js`
+used to need seeded in purely so its IIFE would run — because the export now carries their
+resolved output directly. **Mode 2 remains live for one roster only: the layer canon**
+(`_layer-canon.js`, background/fill modes + slot-host roles), which the export does not yet
+carry. The warp-op roster (`ops`) deliberately STAYS on Mode 1 (`require()`, the preferred
+mode): it already exports `DESCRIPTION` on every entry directly, and `INJECTED_OP_NAMES` — the
+set `mathops` filters to — has no counterpart in the bundle at all, so switching would drop
+data rather than simplify a read. The composer reads the bundle
+(`app/core/rosters.ts:206`) and the old named-literal reads for waveforms/easings/prefix are
+**deleted, not kept as a fallback** — a fallback would let a stale or absent export pass
+unnoticed, which is the one thing the loud failure was protecting. An absent bundle is reported
+under every roster that needed it (now including `material`, `lighting`, `raymarchInputs`), so
+`missing` names which MENU is empty rather than merely which file is. One named-literal read
+remains — the literal auditor's shared role table — and it is the same finding, still open.
 
 The bundle records the **sha256 of every app source it was read from**, and those hashes
 surface as `Rosters.provenance` (`app/core/rosters.ts:97`), so a composition can name which

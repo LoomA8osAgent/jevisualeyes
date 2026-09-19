@@ -166,10 +166,10 @@ test('the candidate map is what a chosen id resolves against (§10.2)', () => {
  *  Same shape as the SDF subject above: scan for a real mesh-route record and use it —
  *  no plant, because `material`/`lighting` are offered whenever a record's own `route`
  *  admits a mesh, which is a mechanical condition (`records.ts` `MESH_ROUTES`), not a
- *  descriptor-lift condition. THE STATE OF THE LIFT for these two is 0% composable
- *  (`docs/COMPOSER.md` §8: `TIP`, not the endpoint-form `DESCRIPTION`, is what the app's
- *  material/lighting rosters carry today) — reported below, not assumed, exactly as the
- *  shape/mathops/shade suite above reports its own lift state. */
+ *  descriptor-lift condition. THE STATE OF THE LIFT for these two moves independently of
+ *  this repo (`docs/COMPOSER.md` §8.1: `DESCRIPTION ?? TIP`, and the export can regain or
+ *  lose `DESCRIPTION` coverage between runs) — reported below, not assumed or hardcoded,
+ *  exactly as the shape/mathops/shade suite above reports its own lift state. */
 
 function meshSubject():RecordDescriptor {
   const id = index.ids.find(id => index.get(id).stacks.includes('material'));
@@ -255,8 +255,8 @@ test('[material/lighting] material/lighting ids are stable at one seed, and diff
 });
 
 test('[material/lighting] material/lighting: skipped[] names EXACTLY the non-composable knobs, held at DEFAULT ' +
-     '(measured: both rosters are 0% composable today — TIP, not the endpoint-form DESCRIPTION, ' +
-     'docs/COMPOSER.md §8)', () => {
+     '(against whatever DESCRIPTION??TIP + range gate the live export currently carries — ' +
+     'docs/COMPOSER.md §8.1)', () => {
   for (const stack of ['material','lighting'] as StackId[]) {
     const knobs = stackKnobs(MESH, stack, rosters);
     const expected = knobs.filter(k => !k.composable).map(k => k.name).sort();

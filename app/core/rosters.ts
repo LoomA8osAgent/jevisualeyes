@@ -10,16 +10,24 @@
  *   1. `require()` — the file already ends `module.exports = API` and loads clean in node.
  *      `app/js/formats/_ops-canon.js` (the warp-op roster) is read this way.
  *   2. a `vm` context with a `window` shim — the file is an IIFE that assigns
- *      `window.X`. `_layer-canon.js` (layer modes + the slot-host roles) and
- *      `_raymarch-ops.js` (the shading-op roster) are read this way. No DOM is touched
- *      at module scope in either; the shim exists so the assignment lands.
+ *      `window.X`. `_layer-canon.js` (layer modes + the slot-host roles) is read this way.
+ *      No DOM is touched at module scope; the shim exists so the assignment lands.
  *   3. a JSON artifact the app itself generates — the FX roster is the manifest the
  *      library builds over `user-media/shaders/fx/**`, and `user-media/shapes/rosters.json`
  *      is the exported roster bundle (the LFO waveform bank, the easing library with its
- *      sampled curves, and the per-card raymarch-op uniform prefix). The bundle carries the
- *      sha256 of every app source it was read from, so a stale export is detectable rather
- *      than silently composed against — those hashes surface as `Rosters.provenance`
- *      (`docs/COMPOSER.md` §5: a decision nobody can trace to its inputs is not provenance).
+ *      sampled curves, the per-card raymarch-op uniform prefix, and — under `.shared` —
+ *      the descriptor rows for the raymarch shading-op roster, the mesh-material roster and
+ *      the light-rig roster). The bundle carries the sha256 of every app source it was read
+ *      from, so a stale export is detectable rather than silently composed against — those
+ *      hashes surface as `Rosters.provenance` (`docs/COMPOSER.md` §5: a decision nobody can
+ *      trace to its inputs is not provenance).
+ *      ⚠ `raymarchOps`/`material`/`lighting` USED TO be Mode-2 window-global reads of
+ *      `_raymarch-ops.js` / `_mesh-material.js` (which itself seeded two sibling canons,
+ *      `_point-line-texture.js` + `_texmapping-canon.js`, purely to let the IIFE run). The
+ *      export now carries the resolved descriptor rows byte-equivalent to what those reads
+ *      produced (verified field-for-field against the app tree before the switch), so all
+ *      four window-global evaluations are RETIRED — Mode 2 remains live only for
+ *      `_layer-canon.js`, which the export does not (yet) carry.
  *   4. a NAMED-LITERAL source read — the value is a module-local `var` with no export at
  *      all, so the only non-transcribing way to obtain it is to read the array literal out
  *      of the source by its own name.
@@ -51,15 +59,10 @@ export interface OpInput {
   _groupId:string; _groupLabel?:string;
   /** present on companions: they co-surface only while the parent op is active. */
   _glyOpCompanion?:string;
+  /** the endpoint-form situation sentence (docs/COMPOSER.md §8) — DESCRIPTION first, TIP
+   *  as the legacy fallback (`samplers.ts stackKnobs` case `'mathops'`). */
+  DESCRIPTION?:string;
   TIP?:string;
-}
-/** A shading op as the app's own raymarch roster declares it. */
-export interface RaymarchOp {
-  /** the op's stable key — it rides the card's own active-op list. */
-  key:string; label?:string; hook?:string; fn?:string; identity?:number; hint?:number; tip?:string;
-  /** the op's own amount bounds; `identity` is the value at which the op is OFF. */
-  amt?:{DEFAULT?:number;MIN?:number;MAX?:number};
-  args?:{name:string;LABEL?:string;DEFAULT:unknown;MIN?:number;MAX?:number;TIP?:string;color?:boolean}[];
 }
 export interface ModeDescriptor { key:string; label:string }
 export interface FxEntry { id:string; name:string; path:string; category:string }
@@ -99,11 +102,18 @@ export interface RosterProvenance {
   sources:{file:string; sha256:string}[];
 }
 
-/** The shape of `user-media/shapes/rosters.json` — the app's own export, read, never restated. */
+/** The shape of `user-media/shapes/rosters.json` — the app's own export, read, never restated.
+ *  `shared` is the descriptor-row half of the export: the same `RosterInput` shape every
+ *  window-global read already produced, so a Mode-3 reader for one of these needs no new
+ *  type — it reads `bundle.shared.<name>` exactly where it used to call the app's IIFE. */
 interface RosterArtifact {
   generated?:string; generator?:string;
   sources?:{file:string; sha256:string}[];
   waveforms?:Waveform[]; easings?:Easing[]; raymarchBase?:string;
+  shared?:{
+    camera?:RosterInput[]; ops?:OpInput[]; raymarchOps?:RosterInput[];
+    deform?:RosterInput[]; material?:RosterInput[]; lighting?:RosterInput[];
+  };
 }
 /** The literal auditor's role table — role key → [name prefix, the shared gloss]. */
 export interface RoleGloss { role:string; prefix:string; gloss:string }
@@ -123,7 +133,6 @@ export interface Rosters {
   appRoot:string;
   /** the full warp-op roster + the subset legal on an INJECTED (non-SDF) shader. */
   ops:{all:OpInput[]; injected:OpInput[]; injectedNames:string[]};
-  raymarch:RaymarchOp[];
   /** the AMOUNT + companion descriptors under the live per-card uniform prefix, as the
    *  raymarch roster itself emits them. These carry `DESCRIPTION` already, so the shade
    *  stack is composable today. */
@@ -132,14 +141,15 @@ export interface Rosters {
   layers:{bgModes:ModeDescriptor[]; fillModes:ModeDescriptor[]};
   /** the mesh-material descriptor roster (`_mesh-material.js` `A8MeshMaterial.INPUTS`) —
    *  shared between M3DEngine and the SDF submodule's mesh-route mode, so it is read here
-   *  once rather than per consumer (SHARED-CANON-DUPLICATED-PER-ENGINE). These carry `TIP`,
-   *  not the endpoint-form `DESCRIPTION` §8 requires — so `stackKnobs` reads only
-   *  `DESCRIPTION` here exactly as it does for every other roster, and every material knob
-   *  is honestly non-composable until that sentence is authored (the same debt shape as the
-   *  408-knob bucket C, never guessed at). */
+   *  once rather than per consumer (SHARED-CANON-DUPLICATED-PER-ENGINE). Some rows still
+   *  carry only the pre-`DESCRIPTION` `TIP` field; `stackKnobs`/`fromRoster` reads
+   *  `DESCRIPTION ?? TIP` (docs/COMPOSER.md §8.1) — a row with neither is honestly
+   *  non-composable, never guessed at. Composability is therefore a live measurement, not a
+   *  fixed count: re-run `stackKnobs(record,'material',rosters)` against a current export
+   *  rather than trusting any number written here. */
   material:RosterInput[];
   /** the light-rig descriptor roster (`_lighting.js` `A8Lighting.INPUTS`), same shared-canon
-   *  shape and the same undescribed-today state as `material` above. */
+   *  shape and the same `DESCRIPTION ?? TIP` rule as `material` above. */
   lighting:RosterInput[];
   fx:FxEntry[];
   waveforms:Waveform[];
@@ -267,13 +277,17 @@ export function loadRosters(appRoot:string, artifactPath?:string):Rosters {
       'the bundle carries no `raymarchBase` — the export is stale or was truncated');
     return a.raymarchBase!;
   }, '');
-  const rayApi = attempt('raymarch',
-    () => readWindowGlobal<{OPS:RaymarchOp[];rosterInputs:(b:string)=>RosterInput[]}>(
-      F('js','formats','_raymarch-ops.js'),'A8RaymarchOps',{A8OpsCanon:opsApi}),
-    null as null|{OPS:RaymarchOp[];rosterInputs:(b:string)=>RosterInput[]});
-  const raymarch = rayApi?.OPS ?? [];
-  const raymarchInputs = attempt('raymarchInputs',
-    () => (rayApi && rmBase ? rayApi.rosterInputs(rmBase) : []), [] as RosterInput[]);
+  // Mode 3 — this used to be a Mode-2 evaluation of `_raymarch-ops.js` (seeded with
+  // `A8OpsCanon`) calling its own `rosterInputs(rmBase)`. The export's `shared.raymarchOps`
+  // is that same call's own return value, byte-equivalent field-for-field (verified against
+  // the app tree), so the window-global evaluation is retired — nothing in this repo ever
+  // read the raw `OPS` array (`hook`/`fn`/`identity`) the IIFE also exposed, so it is gone
+  // too rather than carried as a field with no reader.
+  const raymarchInputs = need('raymarchInputs', a => {
+    ok(Array.isArray(a.shared?.raymarchOps) && a.shared!.raymarchOps!.length > 0,
+      'the bundle carries no `shared.raymarchOps` — the export is stale or the raymarch roster moved');
+    return a.shared!.raymarchOps!;
+  }, [] as RosterInput[]);
 
   const layers = attempt('layers', () => {
     const L = readWindowGlobal<{BG_MODES:ModeDescriptor[];FILL_MODES:ModeDescriptor[]}>(
@@ -281,24 +295,23 @@ export function loadRosters(appRoot:string, artifactPath?:string):Rosters {
     return {bgModes:L.BG_MODES ?? [], fillModes:L.FILL_MODES ?? []};
   }, {bgModes:[] as ModeDescriptor[], fillModes:[] as ModeDescriptor[]});
 
-  const material = attempt('material', () => {
-    // `_mesh-material.js` reads two sibling canons at module scope — `A8PointLineTexture`
-    // (its own texture-compositing GLSL primitives) and `A8TexMappingCanon` (the face
-    // material's texture mapping) — so both are read first and seeded in, the same pattern
-    // the raymarch roster uses to reach `A8OpsCanon`. Neither reads anything further itself.
-    const plt = readWindowGlobal<Record<string,unknown>>(
-      F('js','formats','_point-line-texture.js'),'A8PointLineTexture');
-    const texmap = readWindowGlobal<Record<string,unknown>>(
-      F('js','formats','_texmapping-canon.js'),'A8TexMappingCanon');
-    const M = readWindowGlobal<{INPUTS:RosterInput[]}>(
-      F('js','formats','_mesh-material.js'),'A8MeshMaterial',
-      {A8PointLineTexture:plt, A8TexMappingCanon:texmap});
-    return M.INPUTS ?? [];
+  // Mode 3 — `material`/`lighting` used to be Mode-2 evaluations of `_mesh-material.js`
+  // (itself seeding two sibling canons at module scope, `_point-line-texture.js` +
+  // `_texmapping-canon.js`, purely so the IIFE would run) and `_lighting.js`. The export's
+  // `shared.material` / `shared.lighting` are those same `.INPUTS` arrays (verified
+  // field-for-field against the app tree — the only drop is `_menuOnly`/`_lightHeader`/
+  // `_light`, none of which any reader in this repo ever touched), so all three window-global
+  // evaluations retire together.
+  const material = need('material', a => {
+    ok(Array.isArray(a.shared?.material) && a.shared!.material!.length > 0,
+      'the bundle carries no `shared.material` — the export is stale or the mesh-material roster moved');
+    return a.shared!.material!;
   }, [] as RosterInput[]);
 
-  const lighting = attempt('lighting', () => {
-    const L = readWindowGlobal<{INPUTS:RosterInput[]}>(F('js','formats','_lighting.js'),'A8Lighting');
-    return L.INPUTS ?? [];
+  const lighting = need('lighting', a => {
+    ok(Array.isArray(a.shared?.lighting) && a.shared!.lighting!.length > 0,
+      'the bundle carries no `shared.lighting` — the export is stale or the light-rig roster moved');
+    return a.shared!.lighting!;
   }, [] as RosterInput[]);
 
   const fx = attempt('fx', () => {
@@ -336,7 +349,7 @@ export function loadRosters(appRoot:string, artifactPath?:string):Rosters {
   const r:Rosters = {
     appRoot,
     ops:{all, injectedNames, injected:all.filter(o => injectedNames.includes(o.NAME))},
-    raymarch, raymarchInputs, rmBase, layers, material, lighting, fx, waveforms, easings,
+    raymarchInputs, rmBase, layers, material, lighting, fx, waveforms, easings,
     provenance, roles, missing
   };
   cache.set(cacheKey, r);

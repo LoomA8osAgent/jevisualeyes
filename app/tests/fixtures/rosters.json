@@ -18,6 +18,18 @@
     {
       "file": "app/js/formats/_sdf-swap.js",
       "sha256": "c19597b7a2344bb39f8ace7356fe286cb1c381cc8ea2e9d79b1088b3e7c3c4ca"
+    },
+    {
+      "file": "app/js/formats/_mesh-material.js",
+      "sha256": "e2c6ce6d1180808d28d3e0449624b6a922c2099c7f9aa2202ee60530ff7c6c6b"
+    },
+    {
+      "file": "app/js/formats/_lighting.js",
+      "sha256": "5c5e88fdd52057109ae629785e6760dbba54ceb450bab27154fa5b4db2a92825"
+    },
+    {
+      "file": "app/js/formats/_raymarch-ops.js",
+      "sha256": "937f850356b65afc020fcb0c1588fff6f63ecc380ab389804aed47048b1618d3"
     }
   ],
   "waveforms": [
@@ -288,5 +300,82 @@
       }
     }
   ],
-  "raymarchBase": "rm"
+  "raymarchBase": "rm",
+  "shared": {
+    "material": [
+      {
+        "NAME": "materialType",
+        "TYPE": "long",
+        "LABEL": "material",
+        "DEFAULT": 1,
+        "VALUES": [0, 1, 2, 3, 4, 5, 6, 7],
+        "LABELS": ["basic", "lambert", "phong", "standard", "physical", "toon", "normal", "matcap"],
+        "_groupId": "material",
+        "_groupLabel": "material",
+        "TIP": "material type (lit/unlit shading model)"
+      },
+      {
+        "NAME": "matEmissiveR",
+        "TYPE": "float",
+        "LABEL": "emissive R",
+        "DEFAULT": 0,
+        "MIN": 0,
+        "MAX": 1,
+        "_groupId": "material",
+        "_groupLabel": "material",
+        "TIP": "self-illumination red"
+      }
+    ],
+    "lighting": [
+      {
+        "NAME": "light1Enabled",
+        "TYPE": "long",
+        "LABEL": "light 1",
+        "DEFAULT": 1,
+        "VALUES": [0, 1],
+        "LABELS": ["off", "on"],
+        "_groupId": "lights",
+        "_groupLabel": "lights",
+        "TIP": "light 1 on/off"
+      },
+      {
+        "NAME": "light1Type",
+        "TYPE": "long",
+        "LABEL": "light 1 role",
+        "DEFAULT": 2,
+        "VALUES": [0, 1, 2, 3, 4, 5],
+        "LABELS": ["ambient", "hemisphere", "directional", "point", "spot", "rectarea"],
+        "_groupId": "lights",
+        "_groupLabel": "lights",
+        "TIP": "light 1 type"
+      }
+    ],
+    "raymarchOps": [
+      {
+        "NAME": "rm_ao",
+        "TYPE": "float",
+        "LABEL": "ambient occlusion",
+        "DEFAULT": 0.55,
+        "MIN": 0,
+        "MAX": 1,
+        "_groupId": "raymarch",
+        "_groupLabel": "raymarch",
+        "DESCRIPTION": "darkens creases and contact where the surface folds back on itself (occlusion); drag up to deepen — 0 is off",
+        "_sdfRmOp": "ao"
+      },
+      {
+        "NAME": "rm_ao_radius",
+        "TYPE": "float",
+        "LABEL": "ao radius",
+        "DEFAULT": 0.2,
+        "MIN": 0.02,
+        "MAX": 0.6,
+        "_groupId": "raymarch",
+        "_groupLabel": "raymarch",
+        "DESCRIPTION": "how far the occlusion reaches from the surface",
+        "_sdfRmOp": "ao",
+        "_sdfRmOpCompanion": "rm_ao"
+      }
+    ]
+  }
 }

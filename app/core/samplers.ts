@@ -106,9 +106,14 @@ export function stackKnobs(record:RecordDescriptor, stackId:StackId, rosters:Ros
     case 'mathops':
       // `_ops-canon.js` OP_INPUTS ∩ INJECTED_OP_NAMES; a companion rides its parent and is
       // never offered on its own (`_glyOpCompanion`).
+      // DESCRIPTION is the endpoint-form situation sentence (docs/COMPOSER.md §8); TIP is
+      // the legacy fallback for whatever roster has not yet been given one. The warp-op
+      // roster carries DESCRIPTION on 52/52 entries today — TIP survives on only 3, all of
+      // which also carry DESCRIPTION — so this is the whole difference between mathops
+      // being 3/52 composable and 52/52.
       return rosters.ops.injected
         .filter(o => !o._glyOpCompanion)
-        .map(o => fromRoster(o.NAME, o.LABEL, o.MIN, o.MAX, o.DEFAULT, o.TIP, null));
+        .map(o => fromRoster(o.NAME, o.LABEL, o.MIN, o.MAX, o.DEFAULT, o.DESCRIPTION ?? o.TIP, null));
     case 'shade':
       return rosters.raymarchInputs
         .map(i => fromRoster(i.NAME, i.LABEL, i.MIN, i.MAX, i.DEFAULT, i.DESCRIPTION, null));
