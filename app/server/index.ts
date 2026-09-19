@@ -18,6 +18,10 @@ import {EventBus} from './events.js';
 import {JobRunner} from './jobs.js';
 import type {Composer} from './jobs.js';
 import {providerFor} from './provider.js';
+import {loadRecordIndex} from '../core/records.js';
+import {loadRosters} from '../core/rosters.js';
+import {LooksComposer} from '../core/composer.js';
+import type {LooksComposerOptions} from '../core/composer.js';
 import {FixtureProvider} from './fixture.js';
 import type {DecisionProvider} from '../core/types.js';
 
@@ -49,6 +53,19 @@ export async function runUnit(composer:Composer, recordId:string, tag:string,
   const snap=r.runner.snapshot(job.id);
   return {...r, jobId:job.id, status:snap.status, snapshot:snap,
     composition:r.runner.compositionFor(recordId,tag)};
+}
+
+/** The domain half, built off ONE app tree: the record descriptors + the shared rosters.
+ *  `jobs.ts` owns the spine and no sampling; this is what feeds its `Composer` seam. */
+export function buildComposer(cfg:AppConfig,
+                              opts:Omit<LooksComposerOptions,'index'|'rosters'|'model'> &
+                                   {model?:string}):LooksComposer {
+  return new LooksComposer({
+    index:loadRecordIndex(cfg.shapesIndex, cfg.appRoot),
+    rosters:loadRosters(cfg.appRoot),
+    model:opts.model ?? (effectiveProvider(cfg)==='jev' ? cfg.jevModel : cfg.localModel),
+    ...opts
+  });
 }
 
 /** `status` — what this install would do if a run were started right now. */

@@ -93,6 +93,9 @@ export interface LookCandidate {
   /** One readable line, e.g. "dense regular field, hard edges, two folds, cool palette". */
   description:string;
   params:Record<string,JsonValue>;
+  /** The knobs this look declined to move because they carry no situation sentence
+   *  (`jev.md` §P2.4): held at DEFAULT and NAMED, never silently omitted. Sorted. */
+  skipped?:string[];
 }
 
 /** A modulation candidate for one moving param: a waveform id + an ordinal rate level. */

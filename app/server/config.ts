@@ -34,6 +34,14 @@ export interface AppConfig {
   jevBaseUrl:string; jevModel:string;
   /** `fixture`: a path to the planted answer map (§9). A missing map is an error. */
   fixturePath:string;
+  /** THE LIVE APP TREE — the parent of `js/` and `user-media/`. Everything the composer
+   *  reads about the domain comes from here and NOTHING is transcribed into this repo
+   *  (`SHARED-CANON-DUPLICATED-PER-ENGINE`): the record descriptors, the warp-op roster,
+   *  the raymarch roster, the layer modes, the FX manifest, the LFO waveforms. Default is
+   *  the sibling checkout; a different tree is one env var. */
+  appRoot:string;
+  /** the generated record descriptor index (`user-media/shapes/index.json`). */
+  shapesIndex:string;
   maxJobAttempts:number; maxProviderBodyBytes:number;
   providerAttemptTimeoutMs:number; providerMaxAttemptsPerDecision:number;
   /** One explicitly authorized live call; never set during a test or a gate (§3). */
@@ -63,6 +71,10 @@ export function loadConfig():AppConfig {
     jevBaseUrl: env.JEV_API_URL || 'https://api.typesafe.ai',
     jevModel: env.JEV_MODEL || 'jev-latest',
     fixturePath: env.JEV_FIXTURE || '',
+    appRoot: env.JEV_APP_ROOT || join(APP_ROOT,'..','..','visualeyes','app'),
+    shapesIndex: env.JEV_SHAPES_INDEX ||
+      join(env.JEV_APP_ROOT || join(APP_ROOT,'..','..','visualeyes','app'),
+           'user-media','shapes','index.json'),
     maxJobAttempts: parseInt(env.MAX_JOB_ATTEMPTS || '12000',10),
     maxProviderBodyBytes: parseInt(env.MAX_PROVIDER_BODY_BYTES || '2097152',10),
     providerAttemptTimeoutMs: parseInt(env.PROVIDER_ATTEMPT_TIMEOUT_MS || '45000',10),
