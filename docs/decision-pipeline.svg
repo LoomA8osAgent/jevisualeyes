@@ -1,0 +1,280 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 1080" font-family="Helvetica, Arial, sans-serif" fill="#222">
+  <style>
+    .panel { fill: #fff; stroke: #222; stroke-width: 1.5; }
+    .h { font-size: 20px; font-weight: 700; }
+    .n { font-size: 26px; font-weight: 700; }
+    .p { font-size: 12.5px; }
+    .lbl { font-size: 11px; font-weight: 700; }
+    .box { fill: #fff; stroke: #555; stroke-width: 1; }
+    .pick { fill: #cfcfcf; stroke: #222; stroke-width: 1.4; }
+    .chip { font-size: 10.5px; }
+    .note { font-size: 10.5px; fill: #444; }
+    .tag { font-size: 10px; fill: #fff; font-weight: 700; }
+    .model { fill: #2b5fd9; }
+    .code { fill: #3a8a3a; }
+    .arrow { stroke: #222; stroke-width: 1.5; fill: none; marker-end: url(#a); }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#222"/>
+    </marker>
+  </defs>
+
+  <!-- title strip -->
+  <text x="20" y="30" class="h">How jevisualeyes composes a preset — code enumerates, the model picks one, code renders. Every choice has a receipt.</text>
+  <rect x="1240" y="12" width="70" height="20" rx="3" class="model"/><text x="1275" y="26" text-anchor="middle" class="tag">MODEL CALL</text>
+  <rect x="1320" y="12" width="70" height="20" rx="3" class="code"/><text x="1355" y="26" text-anchor="middle" class="tag">CODE ONLY</text>
+  <text x="1400" y="26" class="note">Provider: local decision model (Laya) · Jev optional · fixture in every test</text>
+
+  <!-- ===== ROW 1 ===== -->
+  <!-- 1 Place the tag -->
+  <g transform="translate(20,50)">
+    <rect width="390" height="480" class="panel"/>
+    <rect x="300" y="8" width="80" height="18" rx="3" class="model"/><text x="340" y="21" text-anchor="middle" class="tag">CALL 1 · bundled</text>
+    <text x="14" y="34" class="n">1</text><text x="40" y="34" class="h">Place the tag on the axes</text>
+    <text x="14" y="58" class="p">The app asks the model to set one coordinate per stack</text>
+    <text x="14" y="74" class="p">from the tag phrase and the record's knob descriptors.</text>
+    <rect x="14" y="90" width="362" height="52" class="box"/>
+    <text x="22" y="106" class="lbl">Tag + record</text>
+    <text x="22" y="122" class="p">"slow organic, cool palette" · record: gyroid (surface + lighting +</text>
+    <text x="22" y="136" class="p">symmetry + raymarch stacks, 23 knobs, measured bounds)</text>
+    <text x="14" y="164" class="lbl">Model chooses (all axes in ONE request — independent given the tag):</text>
+    <g transform="translate(14,176)">
+      <text x="0" y="14" class="chip">Motion</text>
+      <rect x="82" y="2" width="42" height="18" class="box"/><text x="103" y="14" text-anchor="middle" class="chip">still</text>
+      <rect x="128" y="2" width="42" height="18" class="pick"/><text x="149" y="14" text-anchor="middle" class="chip">slow</text>
+      <rect x="174" y="2" width="42" height="18" class="box"/><text x="195" y="14" text-anchor="middle" class="chip">pulse</text>
+      <rect x="220" y="2" width="52" height="18" class="box"/><text x="246" y="14" text-anchor="middle" class="chip">driving</text>
+    </g>
+    <g transform="translate(14,202)">
+      <text x="0" y="14" class="chip">Density</text>
+      <rect x="82" y="2" width="48" height="18" class="box"/><text x="106" y="14" text-anchor="middle" class="chip">sparse</text>
+      <rect x="134" y="2" width="52" height="18" class="pick"/><text x="160" y="14" text-anchor="middle" class="chip">medium</text>
+      <rect x="190" y="2" width="44" height="18" class="box"/><text x="212" y="14" text-anchor="middle" class="chip">dense</text>
+    </g>
+    <g transform="translate(14,228)">
+      <text x="0" y="14" class="chip">Contrast</text>
+      <rect x="82" y="2" width="42" height="18" class="pick"/><text x="103" y="14" text-anchor="middle" class="chip">soft</text>
+      <rect x="128" y="2" width="42" height="18" class="box"/><text x="149" y="14" text-anchor="middle" class="chip">hard</text>
+    </g>
+    <g transform="translate(14,254)">
+      <text x="0" y="14" class="chip">Palette</text>
+      <rect x="82" y="2" width="42" height="18" class="box"/><text x="103" y="14" text-anchor="middle" class="chip">warm</text>
+      <rect x="128" y="2" width="42" height="18" class="pick"/><text x="149" y="14" text-anchor="middle" class="chip">cool</text>
+      <rect x="174" y="2" width="42" height="18" class="box"/><text x="195" y="14" text-anchor="middle" class="chip">mono</text>
+    </g>
+    <g transform="translate(14,280)">
+      <text x="0" y="14" class="chip">Symmetry</text>
+      <rect x="82" y="2" width="42" height="18" class="box"/><text x="103" y="14" text-anchor="middle" class="chip">none</text>
+      <rect x="128" y="2" width="42" height="18" class="pick"/><text x="149" y="14" text-anchor="middle" class="chip">2-fold</text>
+      <rect x="174" y="2" width="42" height="18" class="box"/><text x="195" y="14" text-anchor="middle" class="chip">6-fold</text>
+    </g>
+    <g transform="translate(14,306)">
+      <text x="0" y="14" class="chip">Depth</text>
+      <rect x="82" y="2" width="42" height="18" class="box"/><text x="103" y="14" text-anchor="middle" class="chip">flat</text>
+      <rect x="128" y="2" width="42" height="18" class="pick"/><text x="149" y="14" text-anchor="middle" class="chip">lit</text>
+      <rect x="174" y="2" width="52" height="18" class="box"/><text x="200" y="14" text-anchor="middle" class="chip">volumetric</text>
+    </g>
+    <path d="M195,340 L195,362" class="arrow"/>
+    <rect x="14" y="368" width="362" height="96" class="box"/>
+    <text x="22" y="384" class="lbl">Resulting coordinate</text>
+    <text x="22" y="400" class="p">motion slow · density medium · contrast soft · palette cool</text>
+    <text x="22" y="414" class="p">symmetry 2-fold · depth lit</text>
+    <text x="22" y="434" class="note">No genre names anywhere: a style is a point on these axes.</text>
+    <text x="22" y="448" class="note">Ladders are ORDINAL situations, never numbers — code maps them.</text>
+  </g>
+
+  <!-- 2 Mark what moves -->
+  <g transform="translate(430,50)">
+    <rect width="390" height="480" class="panel"/>
+    <rect x="300" y="8" width="80" height="18" rx="3" class="model"/><text x="340" y="21" text-anchor="middle" class="tag">CALL 1 · bundled</text>
+    <text x="14" y="34" class="n">2</text><text x="40" y="34" class="h">Mark what moves</text>
+    <text x="14" y="58" class="p">In the same request, one yes/no per candidate parameter:</text>
+    <text x="14" y="74" class="p">"should this move under this tag?" — a probability each.</text>
+    <text x="14" y="100" class="lbl">Model answers (Noul, 0..1):</text>
+    <g transform="translate(14,112)">
+      <rect y="0" width="362" height="22" class="box"/><text x="8" y="15" class="chip">surface.fold</text><rect x="250" y="4" width="70" height="14" fill="#222"/><text x="330" y="15" class="chip">0.91</text>
+      <rect y="26" width="362" height="22" class="box"/><text x="8" y="41" class="chip">surface.scale</text><rect x="250" y="30" width="18" height="14" fill="#222"/><text x="330" y="41" class="chip">0.12</text>
+      <rect y="52" width="362" height="22" class="box"/><text x="8" y="67" class="chip">lighting.keyAngle</text><rect x="250" y="56" width="52" height="14" fill="#222"/><text x="330" y="67" class="chip">0.74</text>
+      <rect y="78" width="362" height="22" class="box"/><text x="8" y="93" class="chip">symmetry.phase</text><rect x="250" y="82" width="9" height="14" fill="#222"/><text x="330" y="93" class="chip">0.08</text>
+      <rect y="104" width="362" height="22" class="box"/><text x="8" y="119" class="chip">raymarch.palette.shift</text><rect x="250" y="108" width="62" height="14" fill="#222"/><text x="330" y="119" class="chip">0.83</text>
+    </g>
+    <path d="M195,254 L195,276" class="arrow"/>
+    <rect x="14" y="282" width="362" height="80" class="box"/>
+    <text x="22" y="298" class="lbl">Moving set (above the band)</text>
+    <text x="22" y="314" class="p">surface.fold · lighting.keyAngle · raymarch.palette.shift</text>
+    <text x="22" y="334" class="note">0.5 means "unsure", not "a little". The band is calibrated on</text>
+    <text x="22" y="348" class="note">labelled looks, per provider — a Jev threshold does not transfer.</text>
+    <text x="14" y="390" class="note">Why the same request: the axes and the motion flags are</text>
+    <text x="14" y="404" class="note">independent given the tag, so they ride one call and cannot</text>
+    <text x="14" y="418" class="note">see each other. A hop exists only where the next MENU is</text>
+    <text x="14" y="432" class="note">built from a prior answer (stage 4).</text>
+  </g>
+
+  <!-- 3 Sample the looks -->
+  <g transform="translate(840,50)">
+    <rect width="390" height="480" class="panel"/>
+    <rect x="310" y="8" width="70" height="18" rx="3" class="code"/><text x="345" y="21" text-anchor="middle" class="tag">CODE ONLY</text>
+    <text x="14" y="34" class="n">3</text><text x="40" y="34" class="h">Sample complete looks</text>
+    <text x="14" y="58" class="p">No model call. For each stack the sampler draws N coherent,</text>
+    <text x="14" y="74" class="p">complete looks from the coordinate, seeded.</text>
+    <rect x="14" y="90" width="362" height="70" class="box"/>
+    <text x="22" y="106" class="lbl">Every candidate is valid by construction</text>
+    <text x="22" y="122" class="p">full parameter vector inside every knob's [MIN, MAX] · ops from</text>
+    <text x="22" y="136" class="p">the shared roster · layer state · FX chain · stable id · one-line</text>
+    <text x="22" y="150" class="p">readable description. Out-of-bound looks are never generated.</text>
+    <text x="14" y="184" class="lbl">Candidates for the SURFACE stack (3 of 8):</text>
+    <g transform="translate(14,194)">
+      <rect y="0" width="112" height="120" class="box"/>
+      <text x="56" y="16" text-anchor="middle" class="lbl">S_r2_soft</text>
+      <rect x="10" y="24" width="92" height="60" fill="#eee" stroke="#999"/>
+      <text x="8" y="100" class="note">two folds, wide</text><text x="8" y="112" class="note">cells, soft rim</text>
+      <rect x="125" y="0" width="112" height="120" class="box"/>
+      <text x="181" y="16" text-anchor="middle" class="lbl">S_r5_med</text>
+      <rect x="135" y="24" width="92" height="60" fill="#ddd" stroke="#999"/>
+      <text x="133" y="100" class="note">three folds, mid</text><text x="133" y="112" class="note">cells, soft rim</text>
+      <rect x="250" y="0" width="112" height="120" class="box"/>
+      <text x="306" y="16" text-anchor="middle" class="lbl">S_r7_soft</text>
+      <rect x="260" y="24" width="92" height="60" fill="#e5e5e5" stroke="#999"/>
+      <text x="258" y="100" class="note">two folds, tight</text><text x="258" y="112" class="note">cells, soft rim</text>
+    </g>
+    <text x="14" y="340" class="lbl">Same for every stack:</text>
+    <text x="14" y="356" class="p">lighting (8) · symmetry (6) · raymarch/shade ops (8) · layers (4) · FX (6)</text>
+    <text x="14" y="386" class="note">The menu bounds what can exist. If a look is not on any menu,</text>
+    <text x="14" y="400" class="note">no tag can produce it — the model picks the closest thing.</text>
+    <text x="14" y="420" class="note">Rosters are READ from the app's canon at run time, never copied.</text>
+  </g>
+
+  <!-- 4 Pick one look per stack -->
+  <g transform="translate(1250,50)">
+    <rect width="370" height="480" class="panel"/>
+    <rect x="280" y="8" width="80" height="18" rx="3" class="model"/><text x="320" y="21" text-anchor="middle" class="tag">CALL 2 · bundled</text>
+    <text x="14" y="34" class="n">4</text><text x="40" y="34" class="h">Pick one look per stack</text>
+    <text x="14" y="58" class="p">One Choice per stack over its sampled looks — all</text>
+    <text x="14" y="74" class="p">stacks in one request. A real hop: these menus did</text>
+    <text x="14" y="90" class="p">not exist before stage 1.</text>
+    <text x="14" y="116" class="lbl">Context given to the model</text>
+    <text x="22" y="132" class="p">· tag phrase + accepted coordinate</text>
+    <text x="22" y="146" class="p">· the record's descriptors (never its GLSL)</text>
+    <text x="22" y="160" class="p">· each candidate's id + description</text>
+    <text x="14" y="188" class="lbl">Model chooses (surface):</text>
+    <g transform="translate(14,198)">
+      <rect y="0" width="100" height="26" class="box"/><text x="50" y="17" text-anchor="middle" class="chip">S_r2_soft 0.31</text>
+      <rect x="110" y="0" width="100" height="26" class="pick"/><text x="160" y="17" text-anchor="middle" class="chip">S_r5_med 0.58</text>
+      <rect x="220" y="0" width="100" height="26" class="box"/><text x="270" y="17" text-anchor="middle" class="chip">S_r7_soft 0.11</text>
+    </g>
+    <text x="14" y="250" class="lbl">…and lighting, symmetry, raymarch, layers, FX</text>
+    <rect x="14" y="264" width="342" height="110" class="box"/>
+    <text x="22" y="280" class="lbl">Selection policy</text>
+    <text x="22" y="296" class="p">model choice = the argmax · varied = seeded sampling over the</text>
+    <text x="22" y="310" class="p">returned distribution (temperature 0.8), PRNG state persisted.</text>
+    <text x="22" y="330" class="p">Strict validation first: keys == candidates, finite, sum ≈ 1,</text>
+    <text x="22" y="344" class="p">chosen == argmax. Anything else is an ERROR, never a random pick.</text>
+    <text x="22" y="364" class="note">A wrong pick is still on the menu; it can never invent a knob.</text>
+    <text x="14" y="400" class="note">Only a TRAINED provider's probabilities are confidence.</text>
+    <text x="14" y="414" class="note">A logit-reading LLM may serve the argmax, never a band.</text>
+  </g>
+
+  <!-- ===== ROW 2 ===== -->
+  <!-- 5 Bind the motion -->
+  <g transform="translate(20,560)">
+    <rect width="520" height="500" class="panel"/>
+    <rect x="400" y="8" width="110" height="18" rx="3" class="model"/><text x="455" y="21" text-anchor="middle" class="tag">CALL 3 · conditional</text>
+    <text x="14" y="34" class="n">5</text><text x="40" y="34" class="h">Bind the motion</text>
+    <text x="14" y="58" class="p">Only if stage 2 marked anything as moving. Per moving parameter,</text>
+    <text x="14" y="74" class="p">one waveform Choice over the real modulator roster and one rate</text>
+    <text x="14" y="90" class="p">Score over ordered situations — all in one request.</text>
+    <text x="14" y="118" class="lbl">surface.fold — waveform:</text>
+    <g transform="translate(14,126)">
+      <rect y="0" width="58" height="20" class="pick"/><text x="29" y="14" text-anchor="middle" class="chip">sine</text>
+      <rect x="64" y="0" width="58" height="20" class="box"/><text x="93" y="14" text-anchor="middle" class="chip">triangle</text>
+      <rect x="128" y="0" width="58" height="20" class="box"/><text x="157" y="14" text-anchor="middle" class="chip">square</text>
+      <rect x="192" y="0" width="58" height="20" class="box"/><text x="221" y="14" text-anchor="middle" class="chip">random</text>
+      <rect x="256" y="0" width="58" height="20" class="box"/><text x="285" y="14" text-anchor="middle" class="chip">audio</text>
+    </g>
+    <text x="14" y="172" class="lbl">surface.fold — rate (ordinal ladder):</text>
+    <g transform="translate(14,180)">
+      <rect y="0" width="96" height="20" class="box"/><text x="48" y="14" text-anchor="middle" class="chip">0 barely drifts</text>
+      <rect x="102" y="0" width="96" height="20" class="pick"/><text x="150" y="14" text-anchor="middle" class="chip">1 breathes</text>
+      <rect x="204" y="0" width="96" height="20" class="box"/><text x="252" y="14" text-anchor="middle" class="chip">2 pulses</text>
+      <rect x="306" y="0" width="96" height="20" class="box"/><text x="354" y="14" text-anchor="middle" class="chip">3 strobes</text>
+    </g>
+    <text x="14" y="222" class="note">score 1.2 · probabilities {0: .1, 1: .7, 2: .2, 3: 0}</text>
+    <path d="M260,236 L260,258" class="arrow"/>
+    <rect x="14" y="264" width="492" height="120" class="box"/>
+    <text x="22" y="280" class="lbl">Resulting binds (code turns the ladder into a value)</text>
+    <text x="22" y="298" class="p">surface.fold        ← LFO sine, rate level 1 → 0.08 Hz, bracket inside the knob's range</text>
+    <text x="22" y="314" class="p">lighting.keyAngle   ← LFO triangle, rate level 1 → 0.05 Hz</text>
+    <text x="22" y="330" class="p">raymarch.palette.shift ← LFO sine, rate level 0 → 0.02 Hz</text>
+    <text x="22" y="352" class="note">Binds ride the app's data router like any other source. A Score is</text>
+    <text x="22" y="366" class="note">ordinal — "1.2" is not 20% of the way to "pulses"; it is thresholded.</text>
+    <text x="14" y="412" class="note">The model never does arithmetic, never orders dates, never writes a</text>
+    <text x="14" y="426" class="note">value. Ordinal → number is code (rate table per record family).</text>
+    <text x="14" y="454" class="note">On the 2-slot ONNX export this stage waits for the reference runtime</text>
+    <text x="14" y="468" class="note">(Score + N-way Choice are the conversion's limit, not the model's).</text>
+  </g>
+
+  <!-- 6 Assemble the preset -->
+  <g transform="translate(560,560)">
+    <rect width="520" height="500" class="panel"/>
+    <rect x="440" y="8" width="70" height="18" rx="3" class="code"/><text x="475" y="21" text-anchor="middle" class="tag">CODE ONLY</text>
+    <text x="14" y="34" class="n">6</text><text x="40" y="34" class="h">Assemble the preset + receipts</text>
+    <text x="14" y="58" class="p">No model call. The runner builds one card snapshot per tag,</text>
+    <text x="14" y="74" class="p">attaches the 2–3 receipts as provenance and saves it as a</text>
+    <text x="14" y="90" class="p">named slot through the app's own preset path — never a</text>
+    <text x="14" y="106" class="p">parallel writer.</text>
+    <rect x="14" y="122" width="492" height="150" class="box"/>
+    <text x="22" y="138" class="lbl">preset  "gyroid · slow organic, cool palette"</text>
+    <text x="22" y="156" class="chip">params      { surface: S_r5_med …, lighting: L_k3 …, symmetry: Y_2f …, raymarch: R_p1 … }</text>
+    <text x="22" y="172" class="chip">opActive    { symmetry: [mirror, fold2], raymarch: [ao, palette] }</text>
+    <text x="22" y="188" class="chip">layers      { bg: cool-01 }        fx: [bloom-soft]</text>
+    <text x="22" y="204" class="chip">binds       [ surface.fold←lfo.sine@0.08, lighting.keyAngle←lfo.tri@0.05, … ]</text>
+    <text x="22" y="220" class="chip">generation.provenance  [ receipt CALL1, receipt CALL2, receipt CALL3 ]</text>
+    <text x="22" y="244" class="note">Each receipt: request hash · candidate-map version · prompt-template version · provider id</text>
+    <text x="22" y="258" class="note">· model id · full distribution · chosen id · selection policy · usage · latency.</text>
+    <text x="14" y="296" class="lbl">Every choice is auditable</text>
+    <text x="14" y="312" class="p">Any knob in the preset traces to the question it answered, the menu</text>
+    <text x="14" y="328" class="p">it saw, and the option that won — or to a manual edit, labelled as such.</text>
+    <text x="14" y="356" class="lbl">Every choice persists</text>
+    <text x="14" y="372" class="p">The preset walk carries all of it: values, brackets, binds, ops, layers.</text>
+    <text x="14" y="388" class="p">A choice that does not survive a recall is a bug, not a feature gap.</text>
+    <text x="14" y="420" class="note">Provider id + model id + question roster + template version + thresholds</text>
+    <text x="14" y="434" class="note">are ONE versioned unit. Same stored receipts + same seed replay exactly;</text>
+    <text x="14" y="448" class="note">a live rerun does not — and says so.</text>
+  </g>
+
+  <!-- 7 Repeat / regenerate -->
+  <g transform="translate(1100,560)">
+    <rect width="520" height="500" class="panel"/>
+    <text x="14" y="34" class="n">7</text><text x="40" y="34" class="h">Repeat per tag · regenerate what is unlocked</text>
+    <text x="14" y="58" class="p">The bake runs stages 1–6 for every (record, tag). Later edits</text>
+    <text x="14" y="74" class="p">regenerate only the unlocked stacks; locked ones are hard context.</text>
+    <g transform="translate(14,96)">
+      <rect y="0" width="110" height="52" class="box"/><text x="55" y="22" text-anchor="middle" class="chip">Locked stacks +</text><text x="55" y="36" text-anchor="middle" class="chip">accepted looks</text>
+      <path d="M112,26 L134,26" class="arrow"/>
+      <rect x="136" y="0" width="110" height="52" class="box"/><text x="191" y="22" text-anchor="middle" class="chip">Code samples</text><text x="191" y="36" text-anchor="middle" class="chip">new candidates</text>
+      <path d="M248,26 L270,26" class="arrow"/>
+      <rect x="272" y="0" width="110" height="52" class="box"/><text x="327" y="22" text-anchor="middle" class="chip">Model picks</text><text x="327" y="36" text-anchor="middle" class="chip">one per stack</text>
+      <path d="M384,26 L406,26" class="arrow"/>
+      <rect x="408" y="0" width="98" height="52" class="box"/><text x="457" y="22" text-anchor="middle" class="chip">Assemble +</text><text x="457" y="36" text-anchor="middle" class="chip">receipt</text>
+    </g>
+    <text x="14" y="176" class="lbl">Edits that never call the model</text>
+    <text x="14" y="192" class="p">set a value · pick a blend · lock/unlock · duplicate · rename — deterministic,</text>
+    <text x="14" y="208" class="p">labelled "manual" in provenance.</text>
+    <text x="14" y="236" class="lbl">Edits in words</text>
+    <text x="14" y="252" class="p">"keep the surface, calm the lighting" → ONE Choice over a fixed operation</text>
+    <text x="14" y="268" class="p">set {regenerate, lock, set-axis, unsupported, ambiguous} + target stack.</text>
+    <text x="14" y="284" class="p">Resolves to a lock + a regenerate — never a whole-preset rewrite.</text>
+    <rect x="14" y="308" width="492" height="140" class="box"/>
+    <text x="22" y="324" class="lbl">What the loop guarantees, and what it does not</text>
+    <text x="22" y="342" class="p">Code guarantees: bounded menus, valid values, no protected edits, finite</text>
+    <text x="22" y="356" class="p">jobs, one durable commit per decision, parseable presets, full receipts.</text>
+    <text x="22" y="376" class="p">It cannot guarantee taste. The model cannot see the render. A valid</text>
+    <text x="22" y="390" class="p">all-default look fails the eye; the user (or a later vision judge) says so,</text>
+    <text x="22" y="404" class="p">and the runner offers another variation — never a hidden fallback.</text>
+    <text x="22" y="426" class="note">Cost: 2–3 calls per (record, tag). Bake of 495 records ≈ 5,000 calls —</text>
+    <text x="22" y="440" class="note">under a dollar on Jev, zero on the local provider.</text>
+    <text x="14" y="476" class="note">Fixture provider = deterministic synthetic decisions; every test and gate</text>
+    <text x="14" y="490" class="note">runs on it with zero network. Live smoke is one call behind an explicit flag.</text>
+  </g>
+</svg>

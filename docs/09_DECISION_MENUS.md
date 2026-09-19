@@ -1,6 +1,6 @@
 # 09 — How generation actually works: the decision menus
 
-![The seven decision stages: plan, instruments, chord progression, section direction, per-part groove, next-bar choice, commit-and-repeat](decision-pipeline.jpg)
+![The seven stages: place the tag on the axes, mark what moves, sample complete looks (code), pick one look per stack, bind the motion, assemble the preset + receipts, repeat / regenerate unlocked](decision-pipeline.svg)
 
 Jevthoven does not ask an AI to write notes. It asks Jev (a choice model) a series of
 **multiple-choice questions**, then deterministic code renders the picks into a score.

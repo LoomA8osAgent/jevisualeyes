@@ -1,14 +1,11 @@
 # Jevthoven
 
-![How Jevthoven composes: prompt → plan → instruments → chords → section intent → per-lane groove → bar-by-bar choices](docs/decision-pipeline.jpg)
+![How jevisualeyes composes a preset: tag → axis coordinate → what moves → sampled complete looks → one pick per stack → motion binds → preset + receipts → repeat / regenerate unlocked](docs/decision-pipeline.svg)
 
 Prompt-first symbolic-music studio. Describe music in one sentence — *"a wistful 3/4 waltz, soft keys over round bass, light swing"* — and a live TypeSafe Jev model decides every musical unit, sequentially, with a bounded rolling context (recent bars, motif, harmony plan) resent each step. The result is an editable multitrack composition you can play, reshape, and export.
 
 **There is no offline composer, audio model, or hidden song library.** Every note traces to a persisted Jev decision (or a labeled fixture/manual edit).
 
-
-
-https://github.com/user-attachments/assets/176c69e4-501e-4b71-8517-957cc692882a
 
 
 
