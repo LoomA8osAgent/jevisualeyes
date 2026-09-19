@@ -120,7 +120,7 @@ export interface RecordIndex {
  *  | `shade`      | the raymarch shading-op roster                     | `raymarch`         |
  *  | `layers`     | the layer canon's bg / fill modes + slot hosts     | `bg` / `layer:N`   |
  *  | `fx`         | the FX library manifest                            | `fx`               |
- *  | `modulation` | the record's composable knobs × the LFO waveforms   | — (binds ride the data router) |
+ *  | `modulation` | the record's composable knobs × the MOVEMENT roster | — (binds ride the data router) |
  *
  *  The `shade` stack is offered ONLY when the record's own `route` admits a marcher
  *  (`raymarch` or `either`) — a mesh-route record has no raymarch shading hooks to layer
@@ -132,7 +132,7 @@ export const STACK_SOURCES:Record<StackId,{from:string;groupId:string|null}> = {
   shade:     {from:'A8RaymarchOps.OPS (js/formats/_raymarch-ops.js:50)', groupId:'raymarch'},
   layers:    {from:'A8LayerCanon BG_MODES / FILL_MODES (js/formats/_layer-canon.js:1345)', groupId:'bg'},
   fx:        {from:'the FX library manifest (user-media/shaders/fx/manifest.json)', groupId:'fx'},
-  modulation:{from:'the record\'s composable knobs × the LFO waveform roster (js/lfo-component.js _LF_WAVEFORM_TYPES)', groupId:null}
+  modulation:{from:'the record\'s composable knobs × the movement roster — the LFO waveform bank plus the easing library, both from user-media/shapes/rosters.json', groupId:null}
 };
 
 const MARCHING_ROUTES = new Set(['raymarch','either']);
@@ -201,11 +201,13 @@ function toDescriptor(raw:RawRecord, rosters:Rosters):RecordDescriptor {
 
 /** Load the generated descriptor index. `appRoot` is the live app directory — the parent
  *  of `js/` and `user-media/` — and is where the shared rosters are read from too, so one
- *  app tree answers every question a composer asks. */
-export function loadRecordIndex(indexPath:string, appRoot:string):RecordIndex {
+ *  app tree answers every question a composer asks. `artifactPath` overrides where the
+ *  exported roster bundle is read from; it is passed through so a caller that configured
+ *  one bundle cannot end up composing against a different one here. */
+export function loadRecordIndex(indexPath:string, appRoot:string, artifactPath?:string):RecordIndex {
   const parsed = JSON.parse(readFileSync(indexPath,'utf8')) as {generatedAt?:string;count?:number;records?:RawRecord[]};
   ok(Array.isArray(parsed.records), `${indexPath} has no records array`);
-  const rosters = loadRosters(appRoot);
+  const rosters = loadRosters(appRoot, artifactPath);
   const raw = new Map<string,RawRecord>();
   for (const r of parsed.records!) if (r && r.id) raw.set(r.id, r);
   const built = new Map<string,RecordDescriptor>();

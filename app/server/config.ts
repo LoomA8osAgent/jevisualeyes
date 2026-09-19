@@ -42,6 +42,12 @@ export interface AppConfig {
   appRoot:string;
   /** the generated record descriptor index (`user-media/shapes/index.json`). */
   shapesIndex:string;
+  /** the app's exported roster bundle (`user-media/shapes/rosters.json`) — the waveform
+   *  bank, the easing library with its sampled curves, and the raymarch-op prefix, written
+   *  by the app's own `tools/export-rosters.js`. Configured exactly the way the descriptor
+   *  index is, because it is the same kind of thing: a generated artifact this tool READS
+   *  (`docs/COMPOSER.md` §9). */
+  rostersArtifact:string;
   maxJobAttempts:number; maxProviderBodyBytes:number;
   providerAttemptTimeoutMs:number; providerMaxAttemptsPerDecision:number;
   /** One explicitly authorized live call; never set during a test or a gate (§3.2). */
@@ -75,6 +81,9 @@ export function loadConfig():AppConfig {
     shapesIndex: env.JEV_SHAPES_INDEX ||
       join(env.JEV_APP_ROOT || join(APP_ROOT,'..','..','visualeyes','app'),
            'user-media','shapes','index.json'),
+    rostersArtifact: env.JEV_ROSTERS ||
+      join(env.JEV_APP_ROOT || join(APP_ROOT,'..','..','visualeyes','app'),
+           'user-media','shapes','rosters.json'),
     maxJobAttempts: parseInt(env.MAX_JOB_ATTEMPTS || '12000',10),
     maxProviderBodyBytes: parseInt(env.MAX_PROVIDER_BODY_BYTES || '2097152',10),
     providerAttemptTimeoutMs: parseInt(env.PROVIDER_ATTEMPT_TIMEOUT_MS || '45000',10),

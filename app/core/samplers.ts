@@ -28,11 +28,11 @@
 import {hashJSON} from './hash.js';
 import {canonicalJSON, ok} from './canon.js';
 import {nextRandom} from './selection.js';
-import {AXIS_POSITION, AXIS_SPREAD, ROLE_AXIS, STACK_LABELS} from './axes.js';
+import {AXIS_POSITION, AXIS_SPREAD, ROLE_AXIS, STACK_LABELS, easingFamiliesForMotion} from './axes.js';
 import type {AxisCoordinate, JsonValue, LookCandidate, StackId} from './types.js';
 import type {Knob, RecordDescriptor} from './records.js';
-import {loadRosters} from './rosters.js';
-import type {Rosters} from './rosters.js';
+import {curveShape, loadRosters} from './rosters.js';
+import type {Easing, Rosters} from './rosters.js';
 
 /** What a sampler actually walks: the record's own knobs, or a roster's. One shape, so a
  *  stack is a SOURCE of knobs and never a second sampling algorithm. */
@@ -170,6 +170,41 @@ function take<T>(items:T[], k:number, rnd:()=>number):T[] {
   return pool.slice(0, k).map(p => p.v);
 }
 
+/* ── the movement menu (waveforms AND easings) ───────────────────────────────────── */
+
+/** THE MOVEMENT VOCABULARY IS ONE MENU. A waveform and an easing are both answers to "what
+ *  shape does this parameter move in", so they are enumerated together and handed to
+ *  `requests.ts buildMotionRequest` through its one `waveforms` channel — code enumerates,
+ *  the model picks an id (`docs/COMPOSER.md` §1).
+ *
+ *  An easing id is PREFIXED `ease:` so the committed answer names which roster it came from
+ *  without any code interpreting the string (§4.2): it is looked up, never parsed for meaning.
+ *
+ *  WHICH easings are offered is read two ways, and neither is a name:
+ *   · the coordinate's `motion` word selects FAMILIES through the one feeling table
+ *     (`axes.ts MOTION_FEELING`); an unconstrained axis selects none, and then every easing
+ *     is admissible because the coordinate says nothing about movement shape;
+ *   · the curve's own SAMPLES say whether it is a one-shot move, an overshoot or a cycle
+ *     (`rosters.ts curveShape`). A one-shot ramp held forever is not `driving` movement, so
+ *     a monotonic curve is withheld from that word — and an unresolvable curve, whose shape
+ *     cannot be read at all, is withheld from every word rather than guessed at. */
+export interface MovementOption { id:string; label:string }
+
+export function movementOptions(rosters:Rosters, coordinate:AxisCoordinate):MovementOption[] {
+  const word = coordinate.motion;
+  const out:MovementOption[] = rosters.waveforms.map(w => ({id:w.id, label:w.label}));
+  const families = easingFamiliesForMotion(word);
+  for (const e of rosters.easings) {
+    if (families.length && !families.includes(e.family)) continue;
+    const shape = curveShape(e.curve);
+    if (!shape) continue;
+    if (word === 'driving' && shape === 'monotonic') continue;
+    out.push({id:easingOptionId(e), label:`${e.label} — ${e.family}, ${shape}`});
+  }
+  return out;
+}
+export const easingOptionId = (e:Easing) => 'ease:' + e.id;
+
 /* ── the sampler ────────────────────────────────────────────────────────────────── */
 
 /** N complete looks for ONE stack at ONE coordinate. Deterministic in
@@ -249,10 +284,14 @@ function sampleModulation(record:RecordDescriptor, rosters:Rosters, coordinate:A
   // applies it BEFORE the bind, so it is never an affine output range.
   const movable = record.composableKnobs;
   for (const k of record.knobs) if (!k.composable) skipped.push(k.name);
-  if (!movable.length || !rosters.waveforms.length) return;
+  // ONE movement menu: the LFO waveforms plus the easings the coordinate admits. Drawing
+  // from the same list the model will be offered is what keeps a sampled bind and a picked
+  // bind the same kind of thing.
+  const movement = movementOptions(rosters, coordinate);
+  if (!movable.length || !movement.length) return;
   const k = setSize(rnd, Math.min(3, movable.length), biasOf(coordinate, ['motion']));
   for (const knob of take(movable, k, rnd)) {
-    const wf = rosters.waveforms[Math.floor(rnd() * rosters.waveforms.length)];
+    const wf = movement[Math.floor(rnd() * movement.length)];
     const a = drawValue({...knob, key:knob.name}, coordinate, rnd);
     const b = drawValue({...knob, key:knob.name}, coordinate, rnd);
     params['bind:' + knob.name] = {

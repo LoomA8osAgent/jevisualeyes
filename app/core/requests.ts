@@ -68,8 +68,14 @@ export function buildLookRequest(
 }
 
 /** CALL 1b/3 — motion. A Noul per candidate moving param (is it animated at all), and,
- *  for the params that moved, a waveform Choice plus an ordinal rate Score over the real
- *  modulator roster, which the CALLER supplies — this module never transcribes it. */
+ *  for the params that moved, a movement-shape Choice plus an ordinal rate Score over the
+ *  real modulator roster, which the CALLER supplies — this module never transcribes it.
+ *
+ *  `opts.waveforms` is the whole MOVEMENT roster, not only the LFO bank: an easing is a
+ *  movement shape in the same sense a waveform is, and both arrive here as `{id,label}` from
+ *  `samplers.ts movementOptions` (`docs/COMPOSER.md` §9). The criteria map is built the same
+ *  way for both, because to this module they are the same kind of thing — which is the point:
+ *  nothing here knows what a waveform IS. */
 export function buildMotionRequest(
   model:string, record:RecordState, coordinate:Partial<Record<StackId,Record<string,string>>>,
   params:{name:string;situation:string}[],

@@ -62,8 +62,8 @@ export function buildComposer(cfg:AppConfig,
                               opts:Omit<LooksComposerOptions,'index'|'rosters'|'model'> &
                                    {model?:string}):LooksComposer {
   return new LooksComposer({
-    index:loadRecordIndex(cfg.shapesIndex, cfg.appRoot),
-    rosters:loadRosters(cfg.appRoot),
+    index:loadRecordIndex(cfg.shapesIndex, cfg.appRoot, cfg.rostersArtifact),
+    rosters:loadRosters(cfg.appRoot, cfg.rostersArtifact),
     model:opts.model ?? (effectiveProvider(cfg)==='jev' ? cfg.jevModel : cfg.localModel),
     ...opts
   });

@@ -20,7 +20,7 @@
  */
 import type {StackId} from './types.js';
 
-export const ROSTER_VERSION = 'a8os.jev.roster.v1';
+export const ROSTER_VERSION = 'a8os.jev.roster.v2';
 
 export interface AxisOption {id:string; label:string}
 export interface Axis {id:string; label:string; options:AxisOption[]}
@@ -163,6 +163,59 @@ export const AXIS_POSITION:Record<string,Record<string,number>> = {
  *  coordinate are genuinely DIFFERENT looks rather than N copies of a point
  *  (`docs/COMPOSER.md` §7). Unconstrained axes ignore it and draw [0,1]. */
 export const AXIS_SPREAD = 0.22;
+
+/* ── THE FEELING VOCABULARY (the movement half of §6.1) ────────────────────────────
+ *
+ *  An easing is a movement SHAPE in exactly the sense a waveform is, so the two share one
+ *  menu (`samplers.ts movementOptions` → `requests.ts buildMotionRequest`). What a human
+ *  types about movement, though, is neither an id nor a waveform name — it is a FEELING:
+ *  "springy", "snappy", "drifting". The easing roster already carries the vocabulary that
+ *  answers those words, as `family` + `label` (`rosters.ts Easing`), so this table is the
+ *  translation and nothing more.
+ *
+ *  ONE TABLE, and it is the same table §6.1 is: each feeling also names where it sits on the
+ *  MOTION axis, so a feeling word is prose that lands on a coordinate exactly the way
+ *  "drift" or "insistent" does. There is no second feeling→axis map to drift from this one,
+ *  and no named style is introduced — a feeling resolves to a FAMILY the app already ships.
+ *
+ *  A family with no feeling is simply unspoken-for: the sampler still offers it when the
+ *  coordinate is unconstrained, which is the honest reading of "no feeling word selects it".
+ *  Every edit here bumps ROSTER_VERSION.
+ */
+export interface MotionFeeling {
+  /** where the feeling sits on the `motion` axis — an axis value, never a new one. */
+  motion:string;
+  /** the easing families that speak it, strongest first. */
+  families:string[];
+}
+export const MOTION_FEELING:Record<string,MotionFeeling> = {
+  held:    {motion:'still',    families:['steps','linear']},
+  drifting:{motion:'slow',     families:['sine','quad','cosine']},
+  easing:  {motion:'slow',     families:['cubic','quart','circ']},
+  springy: {motion:'pulse',    families:['elastic','spring']},
+  bouncy:  {motion:'pulse',    families:['back','bounce']},
+  snappy:  {motion:'driving',  families:['expo','quint','stepSaw']},
+  steady:  {motion:'driving',  families:['linear','saw','triangle']}
+};
+
+/** feeling → the families that speak it. */
+export const easingFamiliesForFeeling = (feeling:string):string[] =>
+  MOTION_FEELING[feeling]?.families.slice() ?? [];
+/** family → every feeling it speaks. The same table, read the other way — which is why
+ *  there is only one of it. */
+export const feelingsForEasingFamily = (family:string):string[] =>
+  Object.keys(MOTION_FEELING).filter(f => MOTION_FEELING[f].families.includes(family)).sort();
+/** a motion AXIS word → every easing family its feelings name. `any`, an unknown word, or
+ *  no word at all yields [] — an unconstrained axis restricts nothing, and the caller reads
+ *  [] as "no family preference", never as "no families". */
+export const easingFamiliesForMotion = (word:string|undefined):string[] => {
+  if (!word || word === 'any') return [];
+  const out:string[] = [];
+  for (const f of Object.keys(MOTION_FEELING))
+    if (MOTION_FEELING[f].motion === word)
+      for (const fam of MOTION_FEELING[f].families) if (!out.includes(fam)) out.push(fam);
+  return out;
+};
 
 /** knob ROLE → the axis whose situation words move it, and the SENSE (+1: the axis's
  *  "more" end is the knob's MAX end; -1: it is the knob's MIN end).

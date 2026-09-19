@@ -38,8 +38,8 @@ assert.ok(HAVE_APP,
   `the descriptor index is the tool's whole input and is missing at ${cfg.shapesIndex} — ` +
   'point JEV_APP_ROOT / JEV_SHAPES_INDEX at the live app tree');
 
-const rosters = loadRosters(cfg.appRoot);
-const index = loadRecordIndex(cfg.shapesIndex, cfg.appRoot);
+const rosters = loadRosters(cfg.appRoot, cfg.rostersArtifact);
+const index = loadRecordIndex(cfg.shapesIndex, cfg.appRoot, cfg.rostersArtifact);
 
 /** Sentences LIFTED verbatim-in-substance from the record source's own input comments,
  *  compressed to the endpoint form `<effect> — <MIN end>, <MAX end>`

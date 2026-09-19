@@ -279,7 +279,7 @@ range, and there is deliberately no entry for it in the position table
 (`app/core/axes.ts:157`), because a hidden preference for the middle is not freedom. A
 coordinate word becomes a *place in a range* through two small tables — `AXIS_POSITION` and
 `AXIS_SPREAD` (`app/core/axes.ts:157`, `:169`) — plus `ROLE_AXIS`, which says which axis each
-knob *role* answers to and in which sense (`app/core/axes.ts:181`). A role with no row is
+knob *role* answers to and in which sense (`app/core/axes.ts:230`). A role with no row is
 simply unbiased, which is the honest reading of "this coordinate says nothing about this
 knob".
 
@@ -307,6 +307,28 @@ A candidate mapping, and a table a phrase-to-coordinate step is written and revi
 | a surface · a plane · a field · flat | `depth` | `flat` |
 | relief · embossed · slight · raised | `depth` | `shallow` |
 | marched · receding · fogged · into the dark | `depth` | `deep` |
+
+**Movement FEELING → the easing families that speak it.** The same table, one column wider:
+what a human types about *movement* is neither an id nor a waveform name — it is a feeling.
+The easing roster already ships the vocabulary that answers those words as `family` + `label`,
+so a feeling resolves to a FAMILY the app already has and no named style is introduced. It is
+**one table** (`app/core/axes.ts:191`), read both ways — feeling → families, family → feelings —
+so there is no second feeling→axis map to drift from this one, and each feeling also names where
+it lands on `motion`, exactly as the prose rows above do.
+
+| Feeling | `motion` | Easing families |
+|---|---|---|
+| held · frozen · stepped | `still` | `steps` · `linear` |
+| drifting · settling · breathing | `slow` | `sine` · `quad` · `cosine` |
+| easing · rounded · unhurried | `slow` | `cubic` · `quart` · `circ` |
+| springy · elastic · overshooting | `pulse` | `elastic` · `spring` |
+| bouncy · kicked · rebounding | `pulse` | `back` · `bounce` |
+| snappy · abrupt · sudden | `driving` | `expo` · `quint` · `stepSaw` |
+| steady · relentless · cyclic | `driving` | `linear` · `saw` · `triangle` |
+
+A family no feeling names is simply unspoken-for: the sampler still offers it when the axis is
+unconstrained, which is the honest reading of "no feeling word selects it". Changing any row
+bumps `ROSTER_VERSION` (§12) — it is a menu.
 
 **Three prose families that must NOT be mapped — the omission is the finding.**
 
@@ -471,7 +493,7 @@ prose**, and the 1,901 of bucket D are one table away.
 A "stack" is one part of a card the composer sets as a whole (`StackId`,
 `app/core/types.ts:84`). A record's own `inputs` are one stack; the other five draw from the
 consuming app's shared rosters, **read at run time and transcribed nowhere**
-(`app/core/rosters.ts:164`), so a roster change reaches the composer by re-running rather than
+(`app/core/rosters.ts:230`), so a roster change reaches the composer by re-running rather than
 by editing this repo.
 
 | Stack | Knobs come from | Group id | Axes it answers |
@@ -481,7 +503,7 @@ by editing this repo.
 | `shade` | the raymarch shading-op roster | `raymarch` | `contrast` · `warmth` · `depth` |
 | `layers` | the layer canon's background + fill modes and slot hosts | `bg` / `layer:N` | `warmth` · `density` |
 | `fx` | the FX library manifest | `fx` | `contrast` · `motion` |
-| `modulation` | the record's composable knobs × the LFO waveform roster | — (binds ride the data router) | `motion` |
+| `modulation` | the record's composable knobs × the MOVEMENT roster (waveforms + easings) | — (binds ride the data router) | `motion` |
 
 The table is the one in `app/core/records.ts:131` (`STACK_SOURCES`), which carries each
 roster's concrete source; the axis column is `STACK_AXES` (`app/core/axes.ts:73`). Each roster
@@ -495,23 +517,53 @@ option is inert (`app/core/records.ts:188`).
 
 **Two of the six stacks are SET stacks, not parameter vectors** — `layers` and `fx` draw a
 bounded membership rather than a vector, because a stack whose every option is on is not a look,
-it is a pile (`app/core/samplers.ts:157`). `modulation` samples, per moving param, a waveform
+it is a pile (`app/core/samplers.ts:157`). `modulation` samples, per moving param, a MOVEMENT SHAPE
 from the real roster, an **ordinal rate level** (never a rate — turning an ordinal into Hz is
 arithmetic done in code), and a **curated bracket drawn strictly inside the knob's own domain**
-(`app/core/samplers.ts:243`). The bracket is the performer's *operating window*, not an output
+(`app/core/samplers.ts:278`).
+
+**A waveform and an easing are one menu.** Both answer *what shape does this parameter move
+in*, so they are enumerated together (`app/core/samplers.ts:193`) and handed to the motion
+Choice through its single channel — `requests.ts` never learns what a waveform *is*. An easing
+id is prefixed `ease:` so a committed answer names its roster without any code parsing the
+string (§4.2). **Which easings are offered is read two ways, and neither is a name:** the
+coordinate's `motion` word selects FAMILIES through the one feeling table (§6.1), and the
+curve's own SAMPLES say whether it is a one-shot move, an overshoot or a cycle
+(`app/core/rosters.ts:335`) — a monotonic ramp held forever is not `driving` movement, and a
+curve the exporter could not resolve has no readable shape and is withheld rather than guessed
+at. The bracket is the performer's *operating window*, not an output
 range: without it an oscillator is free to swing a knob across its whole declared span, which is
 the "the motion looks broken" failure the bracket exists to prevent. It serialises as the slot's
 `ranges`, which the consumer recalls **before** `params` — a value restored before its bracket
 is a value clamped by a stale one.
 
-**Four read modes, chosen by what the app file itself offers** (`app/core/rosters.ts:93`):
+**Four read modes, chosen by what the app file itself offers** (`app/core/rosters.ts:8`):
 `require()` for a file that already exports; a `vm` context with a `window` shim for an IIFE
-that assigns a global; a JSON artifact the app itself generates; and — for exactly two values
-that are module-local with no export — a **named-literal source read**, which re-reads the real
-file every run so it cannot silently drift, and fails loudly if the literal is renamed. That
-last mode is reported as a finding, not worked around: both values are canon a second consumer
-now needs, and both would be better exported. **Whatever is unreadable is REPORTED in `missing`,
-never defaulted to a transcription** — a sampler with no roster emits no options for that stack.
+that assigns a global; a JSON artifact the app itself generates; and — for a value that is
+module-local with no export at all — a **named-literal source read**, which re-reads the real
+file every run so it cannot silently drift, and fails loudly if the literal is renamed.
+**Whatever is unreadable is REPORTED in `missing`, never defaulted to a transcription** — a
+sampler with no roster emits no options for that stack.
+
+**THE ROSTER BUNDLE — mode 3, and half of the named-literal finding now closed.** Mode 4 used
+to serve two values that had no export anywhere: the LFO waveform bank and the per-card
+raymarch-op uniform prefix. Both are now EXPORTED by the app's own roster exporter into
+`user-media/shapes/rosters.json`, together with the **easing library, each entry carrying its
+family, its label, the declarative definition the app's own resolver switches on, and its curve
+SAMPLED at 65 points of t ∈ [0,1] by that same resolver**. The composer reads the bundle
+(`app/core/rosters.ts:206`) and the old named-literal reads are **deleted, not kept as a
+fallback** — a fallback would let a stale or absent export pass unnoticed, which is the one
+thing the loud failure was protecting. An absent bundle is reported under every roster that
+needed it, so `missing` names which MENU is empty rather than merely which file is. One
+named-literal read remains — the literal auditor's shared role table — and it is the same
+finding, still open.
+
+The bundle records the **sha256 of every app source it was read from**, and those hashes
+surface as `Rosters.provenance` (`app/core/rosters.ts:97`), so a composition can name which
+export it was composed against. A stale bundle is then a detectable fact rather than an
+invisible one — which is §5's obligation applied to the composer's own inputs. Where the bundle
+lives is configuration, exactly as the descriptor index is (`app/server/config.ts:84`,
+`JEV_ROSTERS`).
 
 ## §10 Locks and regenerate-unlocked
 
@@ -570,8 +622,8 @@ roster's labeled set.
 
 | Version | Home | Moves when |
 |---|---|---|
-| `ROSTER_VERSION` | `app/core/axes.ts:27` | any axis, question text, prompt-version id, position or role table changes |
-| `CANDIDATE_MAP_VERSION` | `app/core/candidates.ts:31` | the SAMPLED SHAPE moves — a new stack, a new roster source, a changed role→axis placement, a changed id form |
+| `ROSTER_VERSION` | `app/core/axes.ts:23` | any axis, question text, prompt-version id, position, role or feeling table changes |
+| `CANDIDATE_MAP_VERSION` | `app/core/candidates.ts:32` | the SAMPLED SHAPE moves — a new stack, a new roster source, a changed role→axis placement, a changed id form |
 | the model pin | `app/server/config.ts:57` | per provider; never `*-latest` in a run whose receipts are meant to be compared |
 
 Every receipt stamps all three plus the returned model string, so neither a changed prompt nor a

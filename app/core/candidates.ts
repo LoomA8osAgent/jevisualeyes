@@ -29,7 +29,7 @@ import type {RecordDescriptor} from './records.js';
 import type {Rosters} from './rosters.js';
 import {sampleAllStacks} from './samplers.js';
 
-export const CANDIDATE_MAP_VERSION = 'a8os.jev.candidates.v1';
+export const CANDIDATE_MAP_VERSION = 'a8os.jev.candidates.v2';
 
 /** id → the one readable line. This IS a Choice question's `criteria` (`types.ts`
  *  `ChoiceQuestion`): string-valued throughout, never a nested object, because the menu the
