@@ -6,19 +6,7 @@
 
 **Local model first.** The default provider is an open-weight decision model running on this machine over the `/v1/systemone` wire on loopback — no key, no network, no telemetry ([Laya](https://huggingface.co/convaiinnovations/laya) via [von](https://github.com/wfzyx/von) today). TypeSafe's Jev is an optional remote provider, never a requirement. The open reproductions of Jev are tracked here: **https://huggingface.co/spaces/multimodalart/jev-reproductions-tracker** — trained scoring heads (calibrated) are the only class that may arm a threshold; logit-reading LLM replicas serve the argmax only.
 
-**Status: the domain swap has landed (increments I1 + I2).** This repository is an MIT
-fork of [cocktailpeanut/jevthoven](https://github.com/cocktailpeanut/jevthoven) — a music
-composer on the same principle. **Upstream is MIT and its notice is preserved verbatim and
-first in `LICENSE`.** What changed: the upstream domain was removed whole — its own
-subject matter, its React editing UI and audio stack, its 30-route Express API and its Pinokio
-launcher are all gone — and replaced with preset composition for the A8os shape corpus.
-What was KEPT is the reason for the fork: the composer loop, the receipt and provenance
-discipline, the fixture-provider posture, strict response validation, and the resumable
-single-runner job engine. **The upstream author's own design documents are preserved
-unmodified under `docs/upstream/`**, including his limitations doc; they are the
-attribution trail and they are evidence, and they are never edited in place. This is an
-offline author-time tool, not a shipped product: it has no UI, no server to visit, and
-nothing it produces runs in a browser here.
+**Status: increments I1 + I2 have landed.** The engine lineage and its MIT notice are in `LICENSE`; nothing else of the origin remains in this tree. What this repository IS: the composer loop (persist-before-call → validate → one durable commit → receipt), the fixture-provider posture, strict response validation, and the resumable single-runner job engine — pointed at preset composition for the A8os shape corpus. This is an offline author-time tool, not a shipped product: it has no UI, no server to visit, and nothing it produces runs in a browser here.
 
 Design: `specs/ai/jev.md` (the judgment layer) and `roadmap/jevisualeyes-rework.md` (this
 rework, file by file) — both in the A8os repository.

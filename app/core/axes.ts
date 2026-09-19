@@ -138,3 +138,60 @@ export const RATE_LADDER:string[] = [
   'Fast',
   'Very fast — visibly hurried'
 ];
+
+/* ── THE SAMPLER'S READING OF A COORDINATE (I3) ────────────────────────────────────
+ *
+ *  An axis value is a WORD, and a sampler needs a PLACE IN A RANGE. These two small
+ *  tables are that translation and nothing more: they add no seventh axis, no named
+ *  style, and no vocabulary the menus do not already carry (`jev.md` §6 —
+ *  `SUBSTRATE-LEAKS-INTO-USER-TAXONOMY` stays satisfied structurally, because expanding
+ *  coverage means adding an axis VALUE or a sampler branch, never a style name).
+ *
+ *  They are HERE, in the roster, for the same reason the question text is: one versioned
+ *  home (§11). Every change below bumps ROSTER_VERSION.
+ */
+
+/** axis id → (option id → where in a knob's range that word sits, 0 = MIN, 1 = MAX).
+ *  `any` is deliberately ABSENT: an unconstrained axis draws across the whole range,
+ *  which is what "this aspect is left free" means — not a hidden preference for the middle. */
+export const AXIS_POSITION:Record<string,Record<string,number>> = {
+  motion:  {still:0.06, slow:0.3,  pulse:0.6,     driving:0.9},
+  density: {sparse:0.18, medium:0.5, busy:0.85},
+  contrast:{flat:0.18,  moderate:0.5, hard:0.85},
+  warmth:  {cold:0.15,  neutral:0.5, warm:0.85},
+  order:   {chaotic:0.1, loose:0.38, regular:0.7, crystalline:0.95},
+  depth:   {flat:0.1,   shallow:0.4, deep:0.85}
+};
+
+/** How wide a band around that place the sampler draws from, so N candidates at one
+ *  coordinate are genuinely DIFFERENT looks rather than N copies of a point (upstream's
+ *  `humanize`, `docs/upstream/02`). Unconstrained axes ignore it and draw [0,1]. */
+export const AXIS_SPREAD = 0.22;
+
+/** knob ROLE → the axis whose situation words move it, and the SENSE (+1: the axis's
+ *  "more" end is the knob's MAX end; -1: it is the knob's MIN end).
+ *
+ *  The role keys are READ from the app at runtime, never listed here — they are
+ *  `_ROLE_NAME` in `app/js/formats/_sdf-math.js` (`auditLiterals`, the literal-auditor
+ *  that mints ~49.5% of the corpus's knobs under ONE shared role table). This map is the
+ *  only new judgement: which of the six axes each of those roles answers to. A role with
+ *  no row here is simply unbiased — the sampler draws it across its whole range, which is
+ *  the honest reading of "this coordinate says nothing about this knob".
+ */
+export const ROLE_AXIS:Record<string,{axis:string;sense:1|-1}> = {
+  frequency:  {axis:'density',  sense:1},   // more harmonics ⇒ a busier field
+  iterations: {axis:'density',  sense:1},   // more iterations ⇒ more structure per unit
+  dimension:  {axis:'density',  sense:-1},  // bigger elements ⇒ fewer of them in frame
+  isoLevel:   {axis:'density',  sense:-1},  // a higher threshold thins the solid
+  minRadius:  {axis:'density',  sense:-1},
+  exponent:   {axis:'contrast', sense:1},   // a steeper falloff ⇒ harder separation
+  bailout:    {axis:'contrast', sense:1},
+  coefficient:{axis:'contrast', sense:1},   // term weight ⇒ how strongly it reads
+  divisor:    {axis:'contrast', sense:-1},
+  foldLimit:  {axis:'order',    sense:1},   // folds ⇒ a clear repeat
+  rotation:   {axis:'order',    sense:-1},  // fold rotation ⇒ the repeat wanders
+  phase:      {axis:'order',    sense:-1},
+  planeOffset:{axis:'order',    sense:-1},
+  offset:     {axis:'order',    sense:-1},
+  scale:      {axis:'depth',    sense:1}
+};
