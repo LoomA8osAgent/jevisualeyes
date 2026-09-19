@@ -27,7 +27,7 @@ import {existsSync} from 'node:fs';
 import {loadConfig} from '../server/config.js';
 import {loadRecordIndex} from '../core/records.js';
 import type {Knob, RecordDescriptor} from '../core/records.js';
-import {loadRosters} from '../core/rosters.js';
+import {composableMenuValues, loadRosters} from '../core/rosters.js';
 import {sampleLooks, assertLookInBounds, stackKnobs} from '../core/samplers.js';
 import {buildCandidateMap, criteriaFor, resolveLook} from '../core/candidates.js';
 import {AXES, STACKS, STACK_AXES} from '../core/axes.js';
@@ -342,4 +342,147 @@ test('[I5] a VALUES knob with no DESCRIPTION stays non-composable, exactly like 
     assert.equal(look.params['materialType'], knob.default,
       'a non-composable enum knob must be held at its DEFAULT, never guessed');
   }
+});
+
+/* ── the menu-buried enums (`agent-reports/menu-state-inventory.md`), RULING 2026-09-19 23:19 ──
+ *
+ *  Paths and seams, not suites. Four spaces, one seam each — the same §8 gate every other
+ *  roster already proves, applied to a NEW artifact shape (`shared.menus`). What is new here
+ *  is asserted once per space and nothing is re-proven: scaleMode is drawn ONLY when the
+ *  record's own descriptor says so; blend/clock never draw without a sentence, live and
+ *  falsified with a planted one; the SDF domain-warp menu joins `mathops` only for a record
+ *  whose `route` admits a marcher. */
+
+test('[menus] the live index never carries a scaleMode-composable record — the reported finding', () => {
+  // agent-reports/menu-state-inventory.md's own gap note: every route in this shapes index
+  // is raymarch/mesh/either, never one of the canvas-upload substrates (WASM/P5J/PEN/LOT)
+  // scaleMode is gated on. This is the honest state of the corpus, not a bug in the gate.
+  const supported = index.ids.filter(id => index.get(id).supportsScaleMode);
+  assert.deepEqual(supported, [], `${supported.length} record(s) unexpectedly support scaleMode`);
+});
+
+test('[menus] scaleMode is drawn on the `shape` stack ONLY when the record supports it', () => {
+  const scaleMenu = composableMenuValues(rosters.menus['scaleMode']);
+  assert.ok(scaleMenu.length > 0, 'the live scaleMode menu must carry ≥1 composable value to prove the positive case');
+  const admitted = new Set(scaleMenu.map(v => v.id));
+
+  // Negative: the real subject never supports scaleMode, and never draws it, across many seeds.
+  for (const seed of [1, 2, 3, 4, 5])
+    for (const look of sampleLooks(SUBJECT.record, 'shape', COORD, {n:N, seed, rosters}))
+      assert.equal(look.params['scaleMode'], undefined,
+        `${SUBJECT.record.id}: scaleMode must never be drawn — supportsScaleMode is false`);
+
+  // Positive: a record whose descriptor SAYS it supports scaleMode draws one of the menu's
+  // own composable ids, at least once across a run of seeds.
+  const scaleSubject:RecordDescriptor = {...SUBJECT.record, supportsScaleMode:true};
+  const drawn = new Set<unknown>();
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8])
+    for (const look of sampleLooks(scaleSubject, 'shape', COORD, {n:N, seed, rosters}))
+      if (look.params['scaleMode'] !== undefined) drawn.add(look.params['scaleMode']);
+  assert.ok(drawn.size > 0, 'a scaleMode-supporting record must draw scaleMode at least once');
+  for (const v of drawn) assert.ok(admitted.has(v as string), `drawn scaleMode "${v}" is not a composable menu id`);
+});
+
+/** Strip every value's `description` off a live menu — the NEGATIVE fixture for the §8 gate,
+ *  independent of whatever the live corpus's OWN composability count happens to be on a given
+ *  run (it moved mid-session: `agent-reports/menu-state-inventory.md`'s "0/30"/"0/4 today"
+ *  measurements are already stale — the live export now carries 30/30 and 4/4). The RULE is
+ *  what these two tests prove, not a momentary corpus count, which is why the negative half
+ *  uses a synthetic stripped roster (same technique as the "a VALUES knob with no DESCRIPTION"
+ *  test above) rather than assuming today's state. */
+function stripped(menu:{key:string;home:string;source:string;values:{id:string;label:string;description?:string}[]}) {
+  return {...menu, values:menu.values.map(v => ({id:v.id, label:v.label}))};
+}
+
+test('[menus] sliderBlend: a per-knob `.blend` attribute, gated on a sentence per §8 ' +
+     '(measured live, proven with a stripped-then-planted roster)', () => {
+  const live = composableMenuValues(rosters.menus['sliderBlend']);
+  console.log(`[menus] sliderBlend: ${live.length}/${rosters.menus['sliderBlend']?.values.length ?? 0} composable (live)`);
+
+  // Negative: with every sentence stripped, `.blend` never appears — on any stack, any seed.
+  const noSentence = {...rosters, menus:{...rosters.menus, sliderBlend:stripped(rosters.menus['sliderBlend'])}};
+  for (const seed of [1, 2, 3])
+    for (const stack of SUBJECT.record.stacks)
+      for (const look of sampleLooks(SUBJECT.record, stack, COORD, {n:N, seed, rosters:noSentence}))
+        for (const key of Object.keys(look.params))
+          assert.ok(!key.endsWith('.blend'), `${stack}.${key}: a blend attribute was drawn with no sentence`);
+
+  // Positive: re-plant exactly one sentence and prove `.blend` DOES appear, drawing only
+  // that one (composable) id — never one of the still-undescribed siblings.
+  const real = rosters.menus['sliderBlend'];
+  assert.ok(real && real.values.length > 1, 'the live sliderBlend menu must carry ≥2 values to prove the ONE-admitted-id case');
+  const onePlanted = {...stripped(real)!, values:stripped(real)!.values.map((v,i) =>
+    i === 0 ? {...v, description:'planted for the falsification'} : v)};
+  const withPlant = {...rosters, menus:{...rosters.menus, sliderBlend:onePlanted}};
+  let sawBlend = false;
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8])
+    for (const look of sampleLooks(SUBJECT.record, 'shape', COORD, {n:N, seed, rosters:withPlant}))
+      for (const [key, value] of Object.entries(look.params))
+        if (key.endsWith('.blend')) { sawBlend = true; assert.equal(value, onePlanted.values[0].id); }
+  assert.ok(sawBlend, 'a planted sentence must make `.blend` drawable');
+});
+
+test('[menus] clock.source: a per-bind attribute, gated on a sentence per §8 ' +
+     '(measured live, proven with a stripped-then-planted roster)', () => {
+  const live = composableMenuValues(rosters.menus['clock.source']);
+  console.log(`[menus] clock.source: ${live.length}/${rosters.menus['clock.source']?.values.length ?? 0} composable (live)`);
+  assert.ok(SUBJECT.record.composableKnobs.length > 0, 'the subject must offer the modulation stack to exercise binds');
+
+  const noSentence = {...rosters, menus:{...rosters.menus, ['clock.source']:stripped(rosters.menus['clock.source'])}};
+  for (const seed of [1, 2, 3])
+    for (const look of sampleLooks(SUBJECT.record, 'modulation', COORD, {n:N, seed, rosters:noSentence}))
+      for (const [key, value] of Object.entries(look.params))
+        if (key.startsWith('bind:'))
+          assert.equal((value as {source?:string}).source, undefined,
+            `${key}: a clock source was drawn with no sentence`);
+
+  const real = rosters.menus['clock.source'];
+  assert.ok(real && real.values.length > 1, 'the live clock.source menu must carry ≥2 values to prove the ONE-admitted-id case');
+  const onePlanted = {...stripped(real)!, values:stripped(real)!.values.map((v,i) =>
+    i === 0 ? {...v, description:'planted for the falsification'} : v)};
+  const withPlant = {...rosters, menus:{...rosters.menus, ['clock.source']:onePlanted}};
+  let sawSource = false;
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8])
+    for (const look of sampleLooks(SUBJECT.record, 'modulation', COORD, {n:N, seed, rosters:withPlant}))
+      for (const [key, value] of Object.entries(look.params))
+        if (key.startsWith('bind:') && (value as {source?:string}).source !== undefined) {
+          sawSource = true;
+          assert.equal((value as {source:string}).source, onePlanted.values[0].id);
+        }
+  assert.ok(sawSource, 'a planted sentence must make a bind\'s `source` drawable');
+});
+
+test('[menus] the SDF domain-warp op menu joins `mathops` ONLY for a record whose route admits a marcher', () => {
+  const sdfMenu = composableMenuValues(rosters.menus['opActive.sdf']);
+  assert.ok(sdfMenu.length > 0, 'the live opActive.sdf menu must carry ≥1 composable op to prove the positive case');
+  const admittedIds = new Set(sdfMenu.map(v => v.id));
+
+  // Positive: a marching-route record (raymarch|either) with a `mathops` stack eventually
+  // draws `opActive.sdf` as a membership set over the menu's own composable ids.
+  const marchId = index.ids.find(id => {
+    const r = index.get(id);
+    return (r.route === 'raymarch' || r.route === 'either') && r.stacks.includes('mathops');
+  });
+  assert.ok(marchId, 'no marching-route record in the live index carries the `mathops` stack');
+  const march = index.get(marchId!);
+  let sawSdfOps = false;
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8])
+    for (const look of sampleLooks(march, 'mathops', COORD, {n:N, seed, rosters})) {
+      const set = look.params['opActive.sdf'] as Record<string,number>|undefined;
+      if (set && Object.keys(set).length) {
+        sawSdfOps = true;
+        for (const k of Object.keys(set)) assert.ok(admittedIds.has(k), `drawn sdf op "${k}" is not on the menu`);
+      }
+    }
+  assert.ok(sawSdfOps, `${march.id}: opActive.sdf must be drawn at least once across 8 seeds`);
+
+  // Negative: a pure mesh-route record (no marcher at all) never draws opActive.sdf, even
+  // though it still offers `mathops` (the warp-op roster is medium-wide, not route-gated).
+  const meshOnlyId = index.ids.find(id => index.get(id).route === 'mesh' && index.get(id).stacks.includes('mathops'));
+  assert.ok(meshOnlyId, 'no pure mesh-route record in the live index carries the `mathops` stack');
+  const meshOnly = index.get(meshOnlyId!);
+  for (const seed of [1, 2, 3])
+    for (const look of sampleLooks(meshOnly, 'mathops', COORD, {n:N, seed, rosters}))
+      assert.equal(look.params['opActive.sdf'], undefined,
+        `${meshOnly.id}: a pure mesh-route record must never draw opActive.sdf (route does not admit a marcher)`);
 });

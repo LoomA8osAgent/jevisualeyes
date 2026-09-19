@@ -125,10 +125,33 @@ interface RosterArtifact {
      *  `js/formats/_layer-canon.js`), each `{key,label}` — the same `ModeDescriptor` shape
      *  the retired Mode-2 read produced. */
     layers?:{bg?:ModeDescriptor[]; fill?:ModeDescriptor[]};
+    /** the menu-buried enums (`agent-reports/menu-state-inventory.md`) — `scaleMode`,
+     *  `sliderBlend`, `opActive.sdf`, `clock.source` today. A 4th `shared.*` shape, keyed by
+     *  `key` at read time (see `loadRosters` `need('menus', …)` below). */
+    menus?:MenuDescriptor[];
   };
 }
 /** The literal auditor's role table — role key → [name prefix, the shared gloss]. */
 export interface RoleGloss { role:string; prefix:string; gloss:string }
+
+/** One admissible state of a MENU-BURIED enum — a named snapshot field (`scaleMode`,
+ *  `sliderBlend`/`groupBlend`, `opActive.sdf`, `card.clock.source`) that the app's preset
+ *  walk persists but that never rode an ordinary `INPUT` descriptor
+ *  (`agent-reports/menu-state-inventory.md`). `description` is the situation sentence for
+ *  THIS value only — composability here is gated per VALUE, never per whole menu, because a
+ *  roster can be partially lifted (§8.1 applies member-by-member). */
+export interface MenuValue { id:string; label:string; description?:string }
+/** A menu-buried value space as `export-rosters.js` emits it: `key` is the short field name
+ *  (`scaleMode`, `sliderBlend`, `opActive.sdf`, `clock.source`), `home` is the fully dotted
+ *  snapshot path the app writes it under, `source` is the app canon file it was read from. */
+export interface MenuDescriptor { key:string; home:string; source:string; values:MenuValue[] }
+/** The values of a menu that carry a situation sentence — the ONLY ones a sampler may draw
+ *  from (§8). An empty return means the menu exists but nothing on it is composable yet: the
+ *  field is never drawn, never defaulted to a guess. */
+export function composableMenuValues(menu:MenuDescriptor|undefined):MenuValue[] {
+  if (!menu) return [];
+  return menu.values.filter(v => typeof v.description === 'string' && v.description.trim().length > 0);
+}
 
 /** An input descriptor as the app's own roster emits it — the canonical NAME, bounds and
  *  (where the roster carries one) the situation sentence. */
@@ -171,6 +194,10 @@ export interface Rosters {
   waveforms:Waveform[];
   /** the easing library, curves included — the second half of the movement vocabulary. */
   easings:Easing[];
+  /** the menu-buried enums, keyed by their own `key` (`scaleMode`, `sliderBlend`,
+   *  `opActive.sdf`, `clock.source`). Read `composableMenuValues(rosters.menus[key])` for
+   *  the value subset a sampler may draw — never `menu.values` directly (§8). */
+  menus:Record<string,MenuDescriptor>;
   /** the export's own provenance, or null when the bundle was unreadable (then `missing`
    *  names every roster that needed it). */
   provenance:RosterProvenance|null;
@@ -340,6 +367,18 @@ export function loadRosters(appRoot:string, artifactPath?:string):Rosters {
     return a.easings!;
   }, [] as Easing[]);
 
+  // Mode 3 — the menu-buried enums (`agent-reports/menu-state-inventory.md`): named snapshot
+  // fields the preset walk persists that never rode an ordinary INPUT descriptor. Keyed by
+  // `key` here so a caller reads `rosters.menus['scaleMode']` the same way it reads any other
+  // shared roster, never re-scanning the array.
+  const menus = need('menus', a => {
+    ok(Array.isArray(a.shared?.menus) && a.shared!.menus!.length > 0,
+      'the bundle carries no `shared.menus` — the export is stale or has not run the menu reader yet');
+    const out:Record<string,MenuDescriptor> = {};
+    for (const m of a.shared!.menus!) out[m.key] = m;
+    return out;
+  }, {} as Record<string,MenuDescriptor>);
+
   const provenance:RosterProvenance|null = bundle ? {
     generated:String(bundle.generated ?? ''), generator:String(bundle.generator ?? ''),
     artifactPath:artifact, sources:(bundle.sources ?? []).map(x => ({file:x.file, sha256:x.sha256}))
@@ -353,7 +392,7 @@ export function loadRosters(appRoot:string, artifactPath?:string):Rosters {
   const r:Rosters = {
     appRoot,
     ops:{all, injectedNames, injected:all.filter(o => injectedNames.includes(o.NAME))},
-    raymarchInputs, rmBase, layers, material, lighting, fx, waveforms, easings,
+    raymarchInputs, rmBase, layers, material, lighting, fx, waveforms, easings, menus,
     provenance, roles, missing
   };
   cache.set(cacheKey, r);

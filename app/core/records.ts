@@ -95,6 +95,11 @@ export interface RecordDescriptor {
   composableKnobs:Knob[];
   /** the stacks this record offers (see STACK_SOURCES). */
   stacks:StackId[];
+  /** whether the `scaleMode` menu (`agent-reports/menu-state-inventory.md`) is even offered
+   *  for THIS record — `supportsScaleMode` above, computed once here so a consumer never
+   *  re-derives the route test. False for every record in the current shapes index (see
+   *  `supportsScaleMode`'s own doc comment). */
+  supportsScaleMode:boolean;
 }
 
 export interface RecordIndex {
@@ -152,6 +157,28 @@ export const STACK_SOURCES:Record<StackId,{from:string;groupId:string|null}> = {
 
 const MARCHING_ROUTES = new Set(['raymarch','either']);
 const MESH_ROUTES = new Set(['mesh','either']);
+/** Exported so a stack-scoped gate elsewhere (`samplers.ts` — the `opActive.sdf` menu
+ *  joining `mathops` only for a marching route) reads the SAME test `stacks` above is built
+ *  from, rather than a second copy of the route-name set (SHARED-CANON-DUPLICATED-PER-ENGINE
+ *  is a code-duplication failure even at two call sites inside one small repo). */
+export const admitsMarching = (route:string):boolean => MARCHING_ROUTES.has(route);
+export const admitsMesh = (route:string):boolean => MESH_ROUTES.has(route);
+/** The route values `docs/COMPOSER.md` §9's `scaleMode` gate names as canvas-upload
+ *  substrates (WASM/P5J/PEN/LOT — `agent-reports/menu-state-inventory.md` "scaleMode" row).
+ *  None of the 495 shape records in this index ever carry one of these `route` values (only
+ *  `raymarch`/`mesh`/`either` are observed — SDF/3DM records, not canvas-upload cards), so
+ *  `supportsScaleMode` below is honestly always false against this corpus today; it is not a
+ *  dead branch, it is the ruled-on fallback firing exactly as specified for a corpus that
+ *  does not (yet) carry the gated route. */
+const CANVAS_UPLOAD_ROUTES = new Set(['wasm','p5j','pen','lot']);
+/** Whether a record's `scaleMode` field is composable at all. Prefers an explicit
+ *  `supportsScaleMode` flag on the raw record when the app ever starts emitting one; falls
+ *  back to the route-membership test the operator ruled on when it does not
+ *  (`agent-reports/menu-state-inventory.md` — RULING 2026-09-19 23:19). */
+export function supportsScaleMode(raw:{supportsScaleMode?:unknown; route?:string}):boolean {
+  if (typeof raw.supportsScaleMode === 'boolean') return raw.supportsScaleMode;
+  return CANVAS_UPLOAD_ROUTES.has(raw.route ?? '');
+}
 
 /* ── reading one record ─────────────────────────────────────────────────────────── */
 
@@ -199,8 +226,8 @@ function toDescriptor(raw:RawRecord, rosters:Rosters):RecordDescriptor {
   const composableKnobs = knobs.filter(k => k.composable);
 
   const stacks:StackId[] = ['shape','mathops','layers','fx'];
-  if (MARCHING_ROUTES.has(raw.route)) stacks.splice(2, 0, 'shade');
-  if (MESH_ROUTES.has(raw.route)) stacks.push('material','lighting');
+  if (admitsMarching(raw.route ?? '')) stacks.splice(2, 0, 'shade');
+  if (admitsMesh(raw.route ?? '')) stacks.push('material','lighting');
   if (composableKnobs.length) stacks.push('modulation');
 
   const situation = (typeof raw.DESCRIPTION === 'string' && raw.DESCRIPTION.trim())
@@ -210,7 +237,8 @@ function toDescriptor(raw:RawRecord, rosters:Rosters):RecordDescriptor {
   return {
     id:raw.id, label:raw.label ?? raw.id, family:raw.family ?? '', group:raw.group ?? '',
     route:raw.route ?? '', situation, lip:num(raw.lip),
-    knobs, composableKnobs, stacks
+    knobs, composableKnobs, stacks,
+    supportsScaleMode:supportsScaleMode(raw)
   };
 }
 

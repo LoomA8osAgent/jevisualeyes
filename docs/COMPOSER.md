@@ -624,6 +624,39 @@ invisible one — which is §5's obligation applied to the composer's own inputs
 lives is configuration, exactly as the descriptor index is (`app/server/config.ts:84`,
 `JEV_ROSTERS`).
 
+### §9.1 Menu-buried enums — a 4th `shared.*` shape
+
+A named snapshot field can carry an enum without ever riding an ordinary `INPUT` descriptor —
+`scaleMode`, `sliderBlend`/`groupBlend`, `opActive.sdf` (a membership set keyed by this
+roster), `card.clock.source` — the app's preset walk persists all four, but none of them is a
+`RosterInput`/`OpInput` row (`agent-reports/menu-state-inventory.md`, operator RULING
+2026-09-19 23:19: *"all of the enum stuff buried in menus — absolutely need that functionality
+for presets and designing shaders"*). `shared.menus` is the export's answer: an array of
+`{key, home, source, values:[{id, label, description?}]}`, read into
+`Rosters.menus:Record<string,MenuDescriptor>` keyed by `key` (`app/core/rosters.ts`
+`need('menus', …)`).
+
+**Composability is gated PER VALUE, not per menu** — `composableMenuValues(menu)` is the ONLY
+door, returning the description-bearing subset; a partially-lifted menu (some values sentenced,
+some not) is the expected shape, exactly like a partially-lifted `RosterInput` roster (§8.1). No
+sampler ever reads `menu.values` directly.
+
+Each space rides the stack its meaning belongs to, never a card-level global:
+
+| Space | Rides | Gate |
+|---|---|---|
+| `scaleMode` | the `shape` stack, as an extra drawn param alongside the record's own knobs | `record.supportsScaleMode` (`records.ts`) — an explicit flag when the app ever emits one, else route-membership in the canvas-upload substrates (WASM/P5J/PEN/LOT) the inventory names. **No record in the current shapes index (raymarch/mesh/either routes only) ever satisfies this** — an honest, measured absence, not a bug: `scaleMode` belongs to canvas-upload cards this index does not carry any of. |
+| `sliderBlend`/`groupBlend` | a per-KNOB attribute (`params[knob.key + '.blend']`), drawn independently of the knob's own value, for every `StackKnob`-based draw (`shape`/`mathops`/`shade`/`material`/`lighting`) | `composableMenuValues(rosters.menus['sliderBlend'])`; absent when empty, never defaulted to `'normal'` |
+| `opActive.sdf` | the `mathops` stack's own membership picture, as a bounded SET (`params['opActive.sdf'] = {<opKey>:1, …}`, same shape as `sampleFx`'s post-pass chain) | `records.ts admitsMarching(record.route)` — the same marcher-only gate `shade` uses. The real app snapshot nests membership under a term id (`card.opActive.sdf = {<termId>:{<opKey>:1}}`); a record descriptor alone carries no term identity, so what this repo emits is the flat set — the term-nesting is a named follow-on, not built here. |
+| `card.clock.source` | a per-bind attribute (`bind.source`) inside `modulation`'s sampled binds, beside the waveform/easing each bind already carries | `composableMenuValues(rosters.menus['clock.source'])`; absent when empty, never defaulted to `'internal'` |
+
+**No new carrier was needed for any of the four.** Every one is written into the SAME
+`LookCandidate.params` bag every ordinary knob value already rides — `resolveLook`'s lookup
+(§4.2) and `jobs.ts commit()`'s `draft.stacks[stack] = {lookId, params:clone(look.params)}`
+already clone `params` verbatim into the composed `CompositionDraft`. A menu pick reaches the
+receipt and the composed snapshot the instant the sampler writes it; there is no separate
+"render the preset" step this repo owns that would need a second wiring pass.
+
 ## §10 Locks and regenerate-unlocked
 
 **Not built here yet; this is the rule it must satisfy when it lands, so that nothing else is

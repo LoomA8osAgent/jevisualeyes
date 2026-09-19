@@ -1,7 +1,7 @@
 {
   "generated": "2026-09-19T15:00:27.038Z",
   "generator": "app/tools/export-rosters.js",
-  "note": "A FIXTURE \u2014 2 waveforms, 3 easings and the raymarch prefix COPIED verbatim out of a real app export (see sources[]). Nothing here is authored: the curves are the app resolver's own samples, so a shape assertion against them is an assertion about the real roster.",
+  "note": "A FIXTURE \u2014 2 waveforms, 3 easings and the raymarch prefix COPIED verbatim out of a real app export (see sources[]). Nothing here is authored: the curves are the app resolver's own samples, so a shape assertion against them is an assertion about the real roster. `shared.menus` (added for the menu-buried-enum seam) is TRIMMED to 2 values per key from the same live export \u2014 the real `scaleMode`/`opActive.sdf` entries genuinely carry a `description` and the real `sliderBlend`/`clock.source` entries genuinely carry none, so the trim changes count, not truth.",
   "sources": [
     {
       "file": "app/lib/anime.umd.min.js",
@@ -452,6 +452,44 @@
           "label": "color + texture + layer"
         }
       ]
-    }
+    },
+    "menus": [
+      {
+        "key": "scaleMode",
+        "home": "card.scaleMode",
+        "source": "app/js/formats/_scale-canon.js",
+        "values": [
+          {"id": "stretch", "label": "stretch", "description": "fill 16:9 edge-to-edge (distorts non-16:9)"},
+          {"id": "fit", "label": "fit", "description": "letterbox — whole frame visible, bars"}
+        ]
+      },
+      {
+        "key": "sliderBlend",
+        "home": "card.sliderBlend / card.groupBlend",
+        "source": "app/js/formats/_blend-canon.js",
+        "values": [
+          {"id": "normal", "label": "normal"},
+          {"id": "add", "label": "add"}
+        ]
+      },
+      {
+        "key": "opActive.sdf",
+        "home": "card.opActive.sdf",
+        "source": "app/js/formats/_sdf-mathops.js",
+        "values": [
+          {"id": "clifford", "label": "clifford", "description": "warps the xy of the march coordinate (sdf3d-shared.glsl §OPS)"},
+          {"id": "dejong", "label": "de jong", "description": "warps the xy of the march coordinate (sdf3d-shared.glsl §OPS)"}
+        ]
+      },
+      {
+        "key": "clock.source",
+        "home": "card.clock.source",
+        "source": "app/js/formats/_clock-canon.js",
+        "values": [
+          {"id": "internal", "label": "internal"},
+          {"id": "tap", "label": "tap"}
+        ]
+      }
+    ]
   }
 }

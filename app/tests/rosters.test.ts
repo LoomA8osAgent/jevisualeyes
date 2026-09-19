@@ -26,7 +26,7 @@ import {test, assert} from 'vitest';
 import {existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {loadConfig} from '../server/config.js';
-import {clearRosterCache, curveShape, loadRosters, rostersArtifactPath} from '../core/rosters.js';
+import {clearRosterCache, composableMenuValues, curveShape, loadRosters, rostersArtifactPath} from '../core/rosters.js';
 import {MOTION_FEELING, easingFamiliesForFeeling, easingFamiliesForMotion,
   feelingsForEasingFamily} from '../core/axes.js';
 import {movementOptions, stackKnobs} from '../core/samplers.js';
@@ -74,7 +74,7 @@ test('an ABSENT bundle is REPORTED, and every menu that needed it is empty (fals
   const r = loadRosters(cfg.appRoot, ABSENT);
   const named = r.missing.map(m => m.roster).sort();
   for (const roster of ['rosters.json','waveforms','easings','rmBase',
-                        'material','lighting','raymarchInputs','layers'])
+                        'material','lighting','raymarchInputs','layers','menus'])
     assert.include(named, roster, `${roster} must name itself in missing[]`);
   for (const m of r.missing) assert.ok(m.reason.trim().length > 0, `${m.roster}: a reason, not a flag`);
   assert.deepEqual(r.waveforms, []);
@@ -84,6 +84,7 @@ test('an ABSENT bundle is REPORTED, and every menu that needed it is empty (fals
   assert.deepEqual(r.lighting, []);
   assert.deepEqual(r.raymarchInputs, []);
   assert.deepEqual(r.layers, {bgModes:[], fillModes:[]});
+  assert.deepEqual(r.menus, {}, 'an absent bundle empties the menu-buried-enum map too');
   assert.equal(r.provenance, null, 'no bundle ⇒ no provenance, never a fabricated one');
   // The rosters that do NOT come from the bundle are unaffected — a missing artifact empties
   // its own menus and nothing else. `ops` is unaffected on purpose: it stays on Mode 1
@@ -252,4 +253,44 @@ test('the movement menu is waveforms AND the easings the coordinate admits', () 
   for (const o of movementOptions(fixture, {}))
     if (o.id.startsWith('ease:'))
       assert.match(o.label, /—.+,\s(monotonic|overshoot|oscillating)$/, `${o.id}: ${o.label}`);
+});
+
+/* ── the menu-buried enums (`agent-reports/menu-state-inventory.md`) ─────────────────
+ *
+ *  Paths and seams, not suites. Four named snapshot fields that never rode an ordinary
+ *  INPUT descriptor — `scaleMode`, `sliderBlend`, `opActive.sdf`, `clock.source` — now
+ *  arrive as a 4th `shared.*` shape (`shared.menus`, array of `{key,home,values,source}`).
+ *  What is asserted here is the READ and the GATE, both proven once and never re-proven per
+ *  consumer: the bundle's rows arrive keyed by their own `key`, an absent bundle empties the
+ *  map (covered above), and `composableMenuValues` is the ONLY door — it returns the
+ *  description-bearing subset, and nothing else ever reads `menu.values` directly. */
+
+test('the menus arrive keyed by their own `key`, exactly as the export wrote them', () => {
+  assert.deepEqual(Object.keys(fixture.menus).sort(),
+    ['clock.source','opActive.sdf','scaleMode','sliderBlend']);
+  assert.equal(fixture.menus['scaleMode'].home, 'card.scaleMode');
+  assert.equal(fixture.menus['scaleMode'].source, 'app/js/formats/_scale-canon.js');
+  assert.deepEqual(fixture.menus['scaleMode'].values.map(v => v.id), ['stretch','fit']);
+});
+
+test('composableMenuValues is the per-VALUE gate (§8) — a menu can be partially lifted', () => {
+  // scaleMode + opActive.sdf: every value in the fixture carries a sentence.
+  assert.equal(composableMenuValues(fixture.menus['scaleMode']).length, 2);
+  assert.equal(composableMenuValues(fixture.menus['opActive.sdf']).length, 2);
+  // sliderBlend + clock.source: no value in the fixture carries one — the gate returns
+  // empty, never a guessed subset.
+  assert.deepEqual(composableMenuValues(fixture.menus['sliderBlend']), []);
+  assert.deepEqual(composableMenuValues(fixture.menus['clock.source']), []);
+  // An undefined menu (a key the bundle never shipped) reads as empty too, never a throw —
+  // a sampler that asks for a menu the app has not built yet gets nothing to draw, not a
+  // crash mid-bake.
+  assert.deepEqual(composableMenuValues(undefined), []);
+  // Falsification: plant a description on one sliderBlend value and prove the gate now
+  // admits exactly that one, never the whole menu.
+  const planted = {...fixture.menus['sliderBlend'],
+    values:fixture.menus['sliderBlend'].values.map((v,i) =>
+      i === 0 ? {...v, description:'normal alpha-over compositing'} : v)};
+  const admitted = composableMenuValues(planted);
+  assert.equal(admitted.length, 1);
+  assert.equal(admitted[0].id, 'normal');
 });

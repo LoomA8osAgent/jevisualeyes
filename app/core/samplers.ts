@@ -30,9 +30,10 @@ import {canonicalJSON, ok} from './canon.js';
 import {nextRandom} from './selection.js';
 import {AXIS_POSITION, AXIS_SPREAD, ROLE_AXIS, STACK_LABELS, easingFamiliesForMotion} from './axes.js';
 import type {AxisCoordinate, JsonValue, LookCandidate, StackId} from './types.js';
+import {admitsMarching} from './records.js';
 import type {Knob, RecordDescriptor} from './records.js';
-import {curveShape, loadRosters} from './rosters.js';
-import type {Easing, Rosters} from './rosters.js';
+import {composableMenuValues, curveShape, loadRosters} from './rosters.js';
+import type {Easing, MenuValue, Rosters} from './rosters.js';
 
 /** What a sampler actually walks: the record's own knobs, or a roster's. One shape, so a
  *  stack is a SOURCE of knobs and never a second sampling algorithm. */
@@ -98,6 +99,18 @@ function drawValue(knob:StackKnob, coordinate:AxisCoordinate, rnd:()=>number):nu
   const u = rnd();
   const at = t === null ? u : clamp01(t + (u - 0.5) * 2 * AXIS_SPREAD);
   return round4(knob.min + at * (knob.max - knob.min));
+}
+
+/** ONE menu-buried value (`agent-reports/menu-state-inventory.md`) — `scaleMode`,
+ *  `sliderBlend`/`groupBlend`, `opActive.sdf`, `clock.source`. Uniform over the COMPOSABLE
+ *  subset only (`composableMenuValues` — §8 gated per value, not per menu), same reasoning as
+ *  an ordinary enum knob (I5): the roster names no order among these states, so biasing one
+ *  toward the coordinate would be guessing an order it never declared. `undefined` when
+ *  nothing on the menu carries a sentence yet — never a silent default id. */
+function drawMenuId(rosters:Rosters, key:string, rnd:()=>number):string|undefined {
+  const values = composableMenuValues(rosters.menus[key]);
+  if (!values.length) return undefined;
+  return values[Math.min(values.length - 1, Math.floor(rnd() * values.length))].id;
 }
 
 /* ── the knob sets, per stack, READ from the app ────────────────────────────────── */
@@ -301,6 +314,14 @@ export function sampleLooks(record:RecordDescriptor, stackId:StackId,
         const v = drawValue(k, coordinate, rnd);
         params[k.key] = v;
         if (v !== k.default) moved.push({knob:k, value:v});
+        // sliderBlend/groupBlend (menu-state-inventory.md): a per-KNOB attribute, drawn
+        // independently of the knob's own value, from the SAME composability gate as every
+        // other menu-buried enum (§8, gated per VALUE — `composableMenuValues`). A blend
+        // mode with no sentence is never written — the field is ABSENT, not defaulted to
+        // `'normal'`; a mode WITH one composes the moment the app's export carries it,
+        // with no second wiring pass owed here.
+        const blend = drawMenuId(rosters, 'sliderBlend', rnd);
+        if (blend) params[k.key + '.blend'] = blend;
       }
       // The strongest movers lead the line — a look is described by what it CHANGED.
       moved.sort((a,b) => {
@@ -308,6 +329,32 @@ export function sampleLooks(record:RecordDescriptor, stackId:StackId,
         const nb = Math.abs(b.value - b.knob.default) / ((b.knob.max - b.knob.min) || 1);
         return nb - na || (a.knob.key < b.knob.key ? -1 : 1);
       });
+      // scaleMode (menu-state-inventory.md): a `shape`-stack pick, gated on the record's own
+      // descriptor rather than a global — RULING 2026-09-19 23:19. No record in the current
+      // shapes index carries a canvas-upload `route`, so `supportsScaleMode` is false for all
+      // 495 of them and this branch never fires against the live corpus today; it fires for
+      // any record — real or synthetic — whose descriptor says otherwise.
+      if (stackId === 'shape' && record.supportsScaleMode) {
+        const picked = drawMenuId(rosters, 'scaleMode', rnd);
+        if (picked) params['scaleMode'] = picked;
+      }
+      // opActive.sdf (menu-state-inventory.md): the SDF domain-warp op roster joins the
+      // `mathops` stack's own membership picture, offered only for a record whose `route`
+      // admits a marcher (the same gate `shade` uses — `records.ts admitsMarching`). Drawn as
+      // a bounded SET, same shape as `sampleFx`'s post-pass chain: a stack where every option
+      // is on is a pile, not a look. The real snapshot nests these under a term id
+      // (`card.opActive.sdf = {<termId>:{<opKey>:1}}`); this repo has no term identity to
+      // draw from a record descriptor alone, so what is emitted here is the flat membership
+      // set `{<opKey>:1, …}` — the term-nesting is a named follow-on, not built here
+      // (composer.ts's own precedent: "deliberately absent rather than stubbed").
+      if (stackId === 'mathops' && admitsMarching(record.route)) {
+        const pool = composableMenuValues(rosters.menus['opActive.sdf']);
+        if (pool.length) {
+          const k = setSize(rnd, Math.min(3, pool.length), biasOf(coordinate, ['order','depth']));
+          const picked = take(pool, k, rnd);
+          if (picked.length) params['opActive.sdf'] = Object.fromEntries(picked.map(p => [p.id, 1]));
+        }
+      }
     }
 
     skipped.sort();
@@ -363,10 +410,17 @@ function sampleModulation(record:RecordDescriptor, rosters:Rosters, coordinate:A
     const wf = movement[Math.floor(rnd() * movement.length)];
     const a = drawValue({...knob, key:knob.name}, coordinate, rnd);
     const b = drawValue({...knob, key:knob.name}, coordinate, rnd);
+    // clock.source (menu-state-inventory.md): a bind's tempo origin, offered beside the
+    // waveform/easing it already carries. Same composability gate as every menu-buried enum
+    // (§8, gated per VALUE) — a source with no sentence is OMITTED, never defaulted to
+    // `'internal'`. The field exists on the emitted bind the instant a sentence lands; no
+    // second wiring pass is owed when it does.
+    const source = drawMenuId(rosters, 'clock.source', rnd);
     params['bind:' + knob.name] = {
       waveform:wf.id,
       rateLevel:Math.floor(clamp01(biasOf(coordinate,['motion']) + (rnd()-0.5)*0.3) * 5),
-      min:Math.min(a,b), max:Math.max(a,b)
+      min:Math.min(a,b), max:Math.max(a,b),
+      ...(source ? {source} : {})
     };
   }
 }
