@@ -480,8 +480,15 @@ covers all twenty. A composable count is a **measurement against the current exp
 fixed number** — the mesh-material and light-rig rosters carried `TIP` only as of the export
 generated `2026-09-19T15:00Z`, then landed full `DESCRIPTION` coverage the same day (export
 `2026-09-19T20:50Z`: `material` 16/18 composable, `lighting` 30/45 — the remainder held back
-by the `MIN`/`MAX` gate on enum rows like `materialType`, not by a missing sentence). Re-run
-`stackKnobs` against the live bundle rather than citing a number from this file.
+by the `MIN`/`MAX` gate on enum rows like `materialType`, not by a missing sentence). **An
+enum row's candidate space is its own `VALUES` list, not `[MIN, MAX]`** — `fromRoster`
+(`app/core/samplers.ts:78`) now gates a `VALUES` row on its sentence alone and draws UNIFORM
+across its own states (order is not a magnitude a coordinate axis can bias toward), which
+moved `material` to 18/18; `lighting` reads 39/45, the remaining 6 (`light1Color`/`light1Ground`
+and their light-2/3 siblings) held back for the reason that survives — a `color` row's
+`DEFAULT` is an array, not a number, so it has neither a `[MIN, MAX]` nor a `VALUES` list to
+draw from. Re-run `stackKnobs` against the live bundle rather than citing a number from this
+file.
 
 **Measured state of the debt (index generated 2026-09-19T10:00Z).** The descriptor carries
 `DEFAULT / MIN / MAX / LABEL` on every input and `BIPOLAR` on 247 of them. **The mechanical
@@ -529,10 +536,12 @@ nothing was added to the axis tables. **Their descriptor rosters read `DESCRIPTI
 (§8.1) like every other roster — carried `TIP` only through the export generated
 `2026-09-19T15:00Z`, so 0% composable was the correct reading through that point; the
 `DESCRIPTION` lift landed the same day (export `2026-09-19T20:50Z`), and composability is now
-16/18 (`material`) and 30/45 (`lighting`), the rest held back by the range gate on enum rows
-(`materialType`, `light1Type`) rather than a missing sentence. Reported by
-`stackKnobs`/`Knob.skipReason` against the live export, never guessed at or cited as a fixed
-number.
+18/18 (`material`) and 39/45 (`lighting`) — an ENUM row's candidate space is its own `VALUES`
+list, gated on its sentence exactly like a ranged knob (§8), so `materialType`/`light1Type`
+and their siblings compose too; what remains at `lighting` is the 6 `color`-type rows
+(`light{1,2,3}Color`/`Ground`), whose array `DEFAULT` has neither a range nor a `VALUES` list
+to draw from. Reported by `stackKnobs`/`Knob.skipReason` against the live export, never
+guessed at or cited as a fixed number.
 
 ⚠ **Two `_groupId` families the operator named are NOT wired here, surfaced rather than
 resolved.** `color`/`sub:palette` knobs exist but are scattered per-engine source with no

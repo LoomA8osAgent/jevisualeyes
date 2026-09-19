@@ -289,3 +289,57 @@ test('[material/lighting] sampleAllStacks still asks ≤3 stack-worth of coordin
   const total = STACKS.reduce((n, s) => n + STACK_AXES[s].length, 0);
   assert.ok(total <= 20, `stack axis sub-questions grew to ${total} — re-check the §7.1 chunk count`);
 });
+
+/* ── I5: ENUM knobs (materialType, light1Type, …) enter the candidate space ─────────
+ *
+ *  A VALUES/LABELS roster row was previously read as a DEGENERATE RANGE (no MIN/MAX) and
+ *  held non-composable regardless of its sentence — exactly backwards, since its candidate
+ *  space IS its VALUES list. `materialType` (real, DESCRIPTION-carrying) is the subject;
+ *  no plant needed. */
+
+test('[I5] an enum knob composes: `materialType` draws one of its own VALUES, not an index ' +
+     'into nothing, and is never held at DEFAULT/skipped', () => {
+  const knob = stackKnobs(MESH, 'material', rosters).find(k => k.name === 'materialType')!;
+  assert.ok(knob, 'materialType must be offered by the live material roster');
+  assert.ok(knob.composable, 'materialType carries a DESCRIPTION and must be composable');
+  assert.ok(knob.values && knob.values.length > 1, 'materialType must carry its VALUES list');
+  const allowed = new Set(knob.values!.map(e => e.v));
+  for (const look of sampleLooks(MESH, 'material', COORD, {n:16, seed:3, rosters})) {
+    assert.ok(allowed.has(look.params['materialType'] as number),
+      `materialType = ${look.params['materialType']} is not one of its declared VALUES`);
+    assertLookInBounds(MESH, 'material', look, rosters);   // positive proof, code's own guard
+  }
+  // Every draw must eventually be able to move the enum off its DEFAULT — an "enum is
+  // composable" claim that never lands anywhere but DEFAULT would be indistinguishable from
+  // it having been skipped.
+  const moved = sampleLooks(MESH, 'material', COORD, {n:32, seed:7, rosters})
+    .some(l => l.params['materialType'] !== knob.default);
+  assert.ok(moved, 'materialType must draw a non-DEFAULT value at least once across 32 seeded looks');
+});
+
+test('[I5] enum draw is deterministic under seed, exactly like a ranged knob', () => {
+  const a = sampleLooks(MESH, 'material', COORD, {n:16, seed:1, rosters}).map(l => l.params['materialType']);
+  const b = sampleLooks(MESH, 'material', COORD, {n:16, seed:1, rosters}).map(l => l.params['materialType']);
+  const c = sampleLooks(MESH, 'material', COORD, {n:16, seed:4242, rosters}).map(l => l.params['materialType']);
+  assert.deepEqual(a, b, 'the same (record, coordinate, seed) must reproduce byte-identically');
+  assert.notDeepEqual(a, c, 'a different seed must draw a different sequence of enum states');
+});
+
+test('[I5] a VALUES knob with no DESCRIPTION stays non-composable, exactly like a ranged knob', () => {
+  // A synthetic roster row: `materialType`'s own VALUES/LABELS, DESCRIPTION and TIP both
+  // stripped — the guard from `docs/COMPOSER.md` §8 gates the enum path the same as the
+  // ranged one. `rosters.material` is the only input `stackKnobs('material', …)` reads, so
+  // overriding it is enough; `record` is unused by the material/lighting/mathops/shade cases.
+  const real = rosters.material.find(i => i.NAME === 'materialType')!;
+  assert.ok(real, 'materialType must be present in the live material roster to plant against');
+  const stripped = {...real, DESCRIPTION:undefined};
+  const undescribed = {...rosters, material:[stripped]};
+  const knob = stackKnobs(MESH, 'material', undescribed)[0];
+  assert.equal(knob.composable, false, 'a VALUES knob with no situation sentence must not compose');
+  assert.ok(knob.skipReason && /situation sentence/.test(knob.skipReason));
+  for (const look of sampleLooks(MESH, 'material', COORD, {n:8, seed:2, rosters:undescribed})) {
+    assert.deepEqual(look.skipped, ['materialType']);
+    assert.equal(look.params['materialType'], knob.default,
+      'a non-composable enum knob must be held at its DEFAULT, never guessed');
+  }
+});

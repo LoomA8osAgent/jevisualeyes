@@ -63,6 +63,9 @@ export interface OpInput {
    *  as the legacy fallback (`samplers.ts stackKnobs` case `'mathops'`). */
   DESCRIPTION?:string;
   TIP?:string;
+  /** present on an ENUM op: the admissible values + their names, read by `samplers.ts
+   *  fromRoster` in place of [MIN, MAX] (I5). */
+  VALUES?:unknown[]; LABELS?:string[];
 }
 export interface ModeDescriptor { key:string; label:string }
 export interface FxEntry { id:string; name:string; path:string; category:string }
@@ -127,6 +130,10 @@ export interface RosterInput {
   _groupId?:string; _groupLabel?:string;
   /** the op this control belongs to, and (companions only) its parent control. */
   _sdfRmOp?:string; _sdfRmOpCompanion?:string;
+  /** present on an ENUM row (`materialType`, `light1Type`, an on/off toggle declared as
+   *  VALUES [0,1]): the admissible values + their names, read by `samplers.ts fromRoster`
+   *  in place of [MIN, MAX] — the candidate space IS this list (I5). */
+  VALUES?:unknown[]; LABELS?:string[];
 }
 
 export interface Rosters {

@@ -36,7 +36,25 @@ import type {Easing, Rosters} from './rosters.js';
 
 /** What a sampler actually walks: the record's own knobs, or a roster's. One shape, so a
  *  stack is a SOURCE of knobs and never a second sampling algorithm. */
-export interface StackKnob extends Knob { /** the param key the value is written under. */ key:string }
+export interface StackKnob extends Knob {
+  /** the param key the value is written under. */ key:string;
+  /** present only on an ENUM knob (a roster's own `VALUES`/`LABELS` list —
+   *  `materialType`, `light1Type`, …): the candidate space IS this list, drawn from
+   *  directly, never from `[min, max]` as a continuous range (I5). */
+  values?:EnumValue[];
+}
+/** One admissible state of an enum knob, as the roster itself names it. */
+export interface EnumValue { v:number; label:string }
+/** Zip a roster row's own `VALUES`/`LABELS` into `EnumValue[]`, or `null` when the row
+ *  carries no `VALUES` — the row is a ranged knob, not an enum one. A `LABELS` entry that
+ *  is missing or non-string falls back to the raw value's own string form, never invented. */
+function zipEnumValues(values:unknown, labels:unknown):EnumValue[]|null {
+  if (!Array.isArray(values) || !values.length) return null;
+  const L = Array.isArray(labels) ? labels : [];
+  return values
+    .map((v, i) => ({v: typeof v === 'number' ? v : Number(v), label: typeof L[i] === 'string' ? L[i] : String(v)}))
+    .filter(e => Number.isFinite(e.v));
+}
 
 export interface SampleOptions { n:number; seed:number; rosters?:Rosters; appRoot?:string }
 
@@ -65,8 +83,17 @@ function targetFor(knob:Knob, coordinate:AxisCoordinate):number|null {
   return placed.sense === 1 ? pos : 1 - pos;
 }
 
-/** ONE value, always inside [MIN, MAX]. The coordinate biases WHERE in the range. */
+/** ONE value. A ranged knob draws inside [MIN, MAX], coordinate-biased. An ENUM knob draws
+ *  one of its own VALUES: "phong" is not "between" basic and standard in any sense a
+ *  coordinate word describes, so an enum's candidate carries no axis bias and is drawn
+ *  UNIFORM — biasing it would be guessing an ORDER the roster never declared (I5). An
+ *  ordered enum (a roster that names its values 2/3/4/5, low-to-high) is not distinguished
+ *  from an unordered one here for the same reason: nothing in the roster's own shape says
+ *  which enums are ordered, so treating any of them as biasable would be exactly the guess
+ *  this rule forbids. */
 function drawValue(knob:StackKnob, coordinate:AxisCoordinate, rnd:()=>number):number {
+  if (knob.values && knob.values.length)
+    return knob.values[Math.min(knob.values.length - 1, Math.floor(rnd() * knob.values.length))].v;
   const t = targetFor(knob, coordinate);
   const u = rnd();
   const at = t === null ? u : clamp01(t + (u - 0.5) * 2 * AXIS_SPREAD);
@@ -77,19 +104,35 @@ function drawValue(knob:StackKnob, coordinate:AxisCoordinate, rnd:()=>number):nu
 
 const fromRoster = (
   key:string, label:string, min:number|undefined, max:number|undefined,
-  def:unknown, description:string|undefined, role:string|null
+  def:unknown, description:string|undefined, role:string|null,
+  values?:unknown, labels?:unknown
 ):StackKnob => {
+  const sentence = (typeof description === 'string' && description.trim()) ? description.trim() : null;
+
+  // AN ENUM KNOB (a roster's own VALUES/LABELS list — `materialType`, `light1Type`, an
+  // on/off toggle declared as VALUES [0,1]) is composable exactly like a ranged knob: gated
+  // on the situation sentence alone. Its candidate space IS its VALUES list, so there is no
+  // [MIN, MAX] to be degenerate and this branch never falls through to the range gate below
+  // (I5 — until this, `materialType`/`light1Type` read as a DEGENERATE RANGE and were held
+  // non-composable regardless of their sentence, which is exactly backwards: an enum with no
+  // MIN/MAX is not a knob missing its bounds, it is a knob whose bounds are its own list).
+  const enumValues = zipEnumValues(values, labels);
+  if (enumValues) {
+    const raw = typeof def === 'number' ? def : enumValues[0].v;
+    const d = enumValues.some(e => e.v === raw) ? raw : enumValues[0].v;
+    const bad = !sentence ? 'no situation sentence (docs/COMPOSER.md §8)' : null;
+    return {key, name:key, label, min:enumValues[0].v, max:enumValues[enumValues.length - 1].v,
+      default:d, bipolar:false, description:sentence, descriptionOrigin:null, role, roleGloss:null,
+      composable:bad === null, skipReason:bad, values:enumValues};
+  }
+
   const lo = typeof min === 'number' ? min : 0, hi = typeof max === 'number' ? max : 0;
-  // A DEFAULT that is itself out of [lo, hi] — an enum knob's numeric index (`materialType`,
-  // `light1Type`) declared with no MIN/MAX at all, so lo/hi fall back to the degenerate [0, 0]
-  // above — is clamped exactly the way a non-numeric DEFAULT (a `color` roster entry's array)
-  // already was: the knob is non-composable either way, and a look must still hold it at a
-  // value `assertLookInBounds` accepts, never at the roster's raw, unclamped number (I4 — found
-  // wiring `material`/`lighting`; a menu roster with no MIN/MAX is exactly what `mathops`/`shade`
-  // have not yet needed to declare, not a case unique to those two).
+  // A DEFAULT that is itself out of [lo, hi] — a non-numeric DEFAULT (a `color` roster
+  // entry's array), with no VALUES list to draw from either — is clamped into [lo, hi]: the
+  // knob is non-composable either way (a degenerate [0,0] range), and a look must still hold
+  // it at a value `assertLookInBounds` accepts, never at the roster's raw, unclamped value.
   const raw = typeof def === 'number' ? def : lo;
   const d = raw < lo ? lo : raw > hi ? hi : raw;
-  const sentence = (typeof description === 'string' && description.trim()) ? description.trim() : null;
   const bad = hi <= lo ? `degenerate range [${lo}, ${hi}]`
     : !sentence ? 'no situation sentence (docs/COMPOSER.md §8)' : null;
   return {key, name:key, label, min:lo, max:hi, default:d, bipolar:lo < 0 && hi > 0,
@@ -113,16 +156,17 @@ export function stackKnobs(record:RecordDescriptor, stackId:StackId, rosters:Ros
       // being 3/52 composable and 52/52.
       return rosters.ops.injected
         .filter(o => !o._glyOpCompanion)
-        .map(o => fromRoster(o.NAME, o.LABEL, o.MIN, o.MAX, o.DEFAULT, o.DESCRIPTION ?? o.TIP, null));
+        .map(o => fromRoster(o.NAME, o.LABEL, o.MIN, o.MAX, o.DEFAULT, o.DESCRIPTION ?? o.TIP, null,
+          o.VALUES, o.LABELS));
     case 'shade':
       return rosters.raymarchInputs
-        .map(i => fromRoster(i.NAME, i.LABEL, i.MIN, i.MAX, i.DEFAULT, i.DESCRIPTION, null));
+        .map(i => fromRoster(i.NAME, i.LABEL, i.MIN, i.MAX, i.DEFAULT, i.DESCRIPTION, null, i.VALUES, i.LABELS));
     case 'material':
       return rosters.material
-        .map(i => fromRoster(i.NAME, i.LABEL, i.MIN, i.MAX, i.DEFAULT, i.DESCRIPTION, null));
+        .map(i => fromRoster(i.NAME, i.LABEL, i.MIN, i.MAX, i.DEFAULT, i.DESCRIPTION, null, i.VALUES, i.LABELS));
     case 'lighting':
       return rosters.lighting
-        .map(i => fromRoster(i.NAME, i.LABEL, i.MIN, i.MAX, i.DEFAULT, i.DESCRIPTION, null));
+        .map(i => fromRoster(i.NAME, i.LABEL, i.MIN, i.MAX, i.DEFAULT, i.DESCRIPTION, null, i.VALUES, i.LABELS));
     case 'layers':
     case 'fx':
     case 'modulation':
@@ -156,6 +200,12 @@ const positionWord = (t:number) => t < 0.34 ? 'low' : t > 0.66 ? 'high' : 'mid';
 function lineFor(record:RecordDescriptor, stackId:StackId, coordinate:AxisCoordinate,
                  moved:{knob:StackKnob;value:number}[]):string {
   const parts = moved.slice(0, 3).map(({knob, value}) => {
+    // An enum knob's line names the picked STATE by its own LABEL — "low/mid/high" has no
+    // meaning over a set with no order, so this is the state's name, never a position word.
+    if (knob.values && knob.values.length) {
+      const state = knob.values.find(e => e.v === value)?.label ?? String(value);
+      return `${headOf(knob.description ?? knob.label)}: ${state}`;
+    }
     const span = knob.max - knob.min;
     const t = span > 0 ? clamp01((value - knob.min) / span) : 0;
     const ends = endsOf(knob.description ?? '');
@@ -354,6 +404,13 @@ export function assertLookInBounds(record:RecordDescriptor, stackId:StackId,
   for (const [key, value] of Object.entries(look.params)) {
     const knob = byKey.get(key);
     if (!knob || typeof value !== 'number') continue;
+    if (knob.values && knob.values.length) {
+      if (!knob.values.some(e => e.v === value))
+        throw new RangeError(
+          `sampled "${key}" = ${value} is not one of its declared VALUES ` +
+          `[${knob.values.map(e => e.v).join(', ')}] (record ${record.id}, stack ${stackId}, look ${look.id})`);
+      continue;
+    }
     if (value < knob.min || value > knob.max)
       throw new RangeError(
         `sampled "${key}" = ${value} is outside its declared [${knob.min}, ${knob.max}] ` +
