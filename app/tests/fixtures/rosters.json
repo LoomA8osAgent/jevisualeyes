@@ -30,6 +30,10 @@
     {
       "file": "app/js/formats/_raymarch-ops.js",
       "sha256": "937f850356b65afc020fcb0c1588fff6f63ecc380ab389804aed47048b1618d3"
+    },
+    {
+      "file": "app/js/formats/_layer-canon.js",
+      "sha256": "1c5853dc322e514dab920a9a52958a8ce15741f5c0500e3aada76c5698ac5201"
     }
   ],
   "waveforms": [
@@ -308,8 +312,26 @@
         "TYPE": "long",
         "LABEL": "material",
         "DEFAULT": 1,
-        "VALUES": [0, 1, 2, 3, 4, 5, 6, 7],
-        "LABELS": ["basic", "lambert", "phong", "standard", "physical", "toon", "normal", "matcap"],
+        "VALUES": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "LABELS": [
+          "basic",
+          "lambert",
+          "phong",
+          "standard",
+          "physical",
+          "toon",
+          "normal",
+          "matcap"
+        ],
         "_groupId": "material",
         "_groupLabel": "material",
         "TIP": "material type (lit/unlit shading model)"
@@ -332,8 +354,14 @@
         "TYPE": "long",
         "LABEL": "light 1",
         "DEFAULT": 1,
-        "VALUES": [0, 1],
-        "LABELS": ["off", "on"],
+        "VALUES": [
+          0,
+          1
+        ],
+        "LABELS": [
+          "off",
+          "on"
+        ],
         "_groupId": "lights",
         "_groupLabel": "lights",
         "TIP": "light 1 on/off"
@@ -343,8 +371,22 @@
         "TYPE": "long",
         "LABEL": "light 1 role",
         "DEFAULT": 2,
-        "VALUES": [0, 1, 2, 3, 4, 5],
-        "LABELS": ["ambient", "hemisphere", "directional", "point", "spot", "rectarea"],
+        "VALUES": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "LABELS": [
+          "ambient",
+          "hemisphere",
+          "directional",
+          "point",
+          "spot",
+          "rectarea"
+        ],
         "_groupId": "lights",
         "_groupLabel": "lights",
         "TIP": "light 1 type"
@@ -360,7 +402,7 @@
         "MAX": 1,
         "_groupId": "raymarch",
         "_groupLabel": "raymarch",
-        "DESCRIPTION": "darkens creases and contact where the surface folds back on itself (occlusion); drag up to deepen — 0 is off",
+        "DESCRIPTION": "darkens creases and contact where the surface folds back on itself (occlusion); drag up to deepen \u2014 0 is off",
         "_sdfRmOp": "ao"
       },
       {
@@ -376,6 +418,40 @@
         "_sdfRmOp": "ao",
         "_sdfRmOpCompanion": "rm_ao"
       }
-    ]
+    ],
+    "layers": {
+      "bg": [
+        {
+          "key": "color",
+          "label": "color"
+        },
+        {
+          "key": "texture",
+          "label": "texture"
+        },
+        {
+          "key": "color+texture",
+          "label": "color + texture"
+        }
+      ],
+      "fill": [
+        {
+          "key": "color",
+          "label": "color"
+        },
+        {
+          "key": "texture",
+          "label": "texture"
+        },
+        {
+          "key": "color+texture",
+          "label": "color + texture"
+        },
+        {
+          "key": "color+texture+layer",
+          "label": "color + texture + layer"
+        }
+      ]
+    }
   }
 }

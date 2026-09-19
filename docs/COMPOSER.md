@@ -590,20 +590,23 @@ file every run so it cannot silently drift, and fails loudly if the literal is r
 **Whatever is unreadable is REPORTED in `missing`, never defaulted to a transcription** — a
 sampler with no roster emits no options for that stack.
 
-**THE ROSTER BUNDLE — mode 3, growing to cover the window-global reads too.** Mode 4 used to
-serve two values that had no export anywhere: the LFO waveform bank and the per-card
-raymarch-op uniform prefix. Both are now EXPORTED by the app's own roster exporter into
+**THE ROSTER BUNDLE — mode 3, and Mode 2 is now fully RETIRED.** Mode 4 used to serve two
+values that had no export anywhere: the LFO waveform bank and the per-card raymarch-op
+uniform prefix. Both are now EXPORTED by the app's own roster exporter into
 `user-media/shapes/rosters.json`, together with the **easing library, each entry carrying its
 family, its label, the declarative definition the app's own resolver switches on, and its curve
 SAMPLED at 65 points of t ∈ [0,1] by that same resolver** — and, under `.shared`, the resolved
-descriptor rows for the raymarch shading-op roster, the mesh-material roster and the light-rig
-roster, each one **byte-equivalent to what evaluating the app's own IIFE used to produce**
-(verified field-for-field before the switch). Those three Mode-2 reads are RETIRED — including
-the two sibling canons (`_point-line-texture.js`, `_texmapping-canon.js`) `_mesh-material.js`
-used to need seeded in purely so its IIFE would run — because the export now carries their
-resolved output directly. **Mode 2 remains live for one roster only: the layer canon**
-(`_layer-canon.js`, background/fill modes + slot-host roles), which the export does not yet
-carry. The warp-op roster (`ops`) deliberately STAYS on Mode 1 (`require()`, the preferred
+descriptor rows for the raymarch shading-op roster, the mesh-material roster, the light-rig
+roster and the layer canon's background/fill mode lists, each one **byte-equivalent to what
+evaluating the app's own IIFE used to produce** (verified field-for-field before each switch).
+Those four Mode-2 reads are RETIRED — including the two sibling canons
+(`_point-line-texture.js`, `_texmapping-canon.js`) `_mesh-material.js` used to need seeded in
+purely so its IIFE would run — because the export now carries their resolved output directly.
+**`layers` was the last of the four; `readWindowGlobal` (Mode 2 itself) has no remaining
+caller and is deleted with it.** `_layer-canon.js` also declares a slot-host role table
+alongside `BG_MODES`/`FILL_MODES` — the window-global read never touched it (no reader in
+this repo ever did), so the export does not carry it either; nothing here lost a value it
+used to have. The warp-op roster (`ops`) deliberately STAYS on Mode 1 (`require()`, the preferred
 mode): it already exports `DESCRIPTION` on every entry directly, and `INJECTED_OP_NAMES` — the
 set `mathops` filters to — has no counterpart in the bundle at all, so switching would drop
 data rather than simplify a read. The composer reads the bundle

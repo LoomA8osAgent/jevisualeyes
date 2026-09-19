@@ -5,29 +5,34 @@
  *  never holds a copy and a roster change reaches the composer by re-running, not by editing
  *  this repo.
  *
- *  FOUR READ MODES, chosen by what the app file itself offers — in order of preference:
+ *  FOUR READ MODES, chosen by what the app file itself offers — in order of preference
+ *  (mode 2 is now RETIRED; kept numbered so the modes below still match their history):
  *
  *   1. `require()` — the file already ends `module.exports = API` and loads clean in node.
  *      `app/js/formats/_ops-canon.js` (the warp-op roster) is read this way.
  *   2. a `vm` context with a `window` shim — the file is an IIFE that assigns
- *      `window.X`. `_layer-canon.js` (layer modes + the slot-host roles) is read this way.
- *      No DOM is touched at module scope; the shim exists so the assignment lands.
+ *      `window.X`. No DOM is touched at module scope; the shim exists so the assignment
+ *      lands. **Fully RETIRED as of this file's `layers` switch** (below) — nothing left
+ *      reads this way, and `readWindowGlobal` is deleted with it, not kept idle for a future
+ *      caller that would only reintroduce the transcription risk it existed to avoid.
  *   3. a JSON artifact the app itself generates — the FX roster is the manifest the
  *      library builds over `user-media/shaders/fx/**`, and `user-media/shapes/rosters.json`
  *      is the exported roster bundle (the LFO waveform bank, the easing library with its
  *      sampled curves, the per-card raymarch-op uniform prefix, and — under `.shared` —
- *      the descriptor rows for the raymarch shading-op roster, the mesh-material roster and
- *      the light-rig roster). The bundle carries the sha256 of every app source it was read
- *      from, so a stale export is detectable rather than silently composed against — those
- *      hashes surface as `Rosters.provenance` (`docs/COMPOSER.md` §5: a decision nobody can
- *      trace to its inputs is not provenance).
- *      ⚠ `raymarchOps`/`material`/`lighting` USED TO be Mode-2 window-global reads of
- *      `_raymarch-ops.js` / `_mesh-material.js` (which itself seeded two sibling canons,
- *      `_point-line-texture.js` + `_texmapping-canon.js`, purely to let the IIFE run). The
- *      export now carries the resolved descriptor rows byte-equivalent to what those reads
- *      produced (verified field-for-field against the app tree before the switch), so all
- *      four window-global evaluations are RETIRED — Mode 2 remains live only for
- *      `_layer-canon.js`, which the export does not (yet) carry.
+ *      the descriptor rows for the raymarch shading-op roster, the mesh-material roster,
+ *      the light-rig roster and the layer canon's bg/fill mode lists). The bundle carries
+ *      the sha256 of every app source it was read from, so a stale export is detectable
+ *      rather than silently composed against — those hashes surface as `Rosters.provenance`
+ *      (`docs/COMPOSER.md` §5: a decision nobody can trace to its inputs is not provenance).
+ *      ⚠ `raymarchOps`/`material`/`lighting`/`layers` USED TO be Mode-2 window-global reads
+ *      of `_raymarch-ops.js` / `_mesh-material.js` (which itself seeded two sibling canons,
+ *      `_point-line-texture.js` + `_texmapping-canon.js`, purely to let the IIFE run) /
+ *      `_layer-canon.js`. The export now carries the resolved descriptor rows
+ *      byte-equivalent to what those reads produced (verified field-for-field against the
+ *      app tree before each switch), so all four window-global evaluations are RETIRED.
+ *      `layers` carries only the bg/fill MODE lists the roster ever read
+ *      (`BG_MODES`/`FILL_MODES`, renamed `bg`/`fill` in the export); the slot-host role
+ *      table `_layer-canon.js` also declares had no reader here and is not exported.
  *   4. a NAMED-LITERAL source read — the value is a module-local `var` with no export at
  *      all, so the only non-transcribing way to obtain it is to read the array literal out
  *      of the source by its own name.
@@ -116,6 +121,10 @@ interface RosterArtifact {
   shared?:{
     camera?:RosterInput[]; ops?:OpInput[]; raymarchOps?:RosterInput[];
     deform?:RosterInput[]; material?:RosterInput[]; lighting?:RosterInput[];
+    /** the layer canon's bg/fill MODE lists (`A8LayerCanon BG_MODES`/`FILL_MODES`,
+     *  `js/formats/_layer-canon.js`), each `{key,label}` — the same `ModeDescriptor` shape
+     *  the retired Mode-2 read produced. */
+    layers?:{bg?:ModeDescriptor[]; fill?:ModeDescriptor[]};
   };
 }
 /** The literal auditor's role table — role key → [name prefix, the shared gloss]. */
@@ -175,29 +184,11 @@ export interface Rosters {
 
 function readCjs<T>(file:string):T { return require_(file) as T; }
 
-/** Mode 2 — evaluate an IIFE that assigns `window.<name>` and hand back that object.
- *  `seed` pre-populates the shim window for files that read a sibling canon off it (the
- *  raymarch roster reads the warp-op canon through its own accessor). */
-function readWindowGlobal<T>(file:string, name:string, seed:Record<string,unknown> = {}):T {
-  const win:Record<string,unknown> = {...seed};
-  const stubEl = () => ({style:{}, classList:{add(){}, remove(){}, toggle(){}, contains(){return false;}},
-    appendChild(){}, setAttribute(){}, addEventListener(){}, querySelector(){return null;},
-    querySelectorAll(){return [];}});
-  const ctx = createContext({
-    window:win,
-    document:{createElement:stubEl, createElementNS:stubEl, addEventListener(){},
-      body:stubEl(), documentElement:stubEl(), querySelector(){return null;},
-      querySelectorAll(){return [];}},
-    navigator:{userAgent:'node'},
-    console, setTimeout, clearTimeout, setInterval, clearInterval,
-    requestAnimationFrame:()=>0, cancelAnimationFrame(){},
-    performance:{now:()=>0}
-  });
-  runInContext(readFileSync(file,'utf8'), ctx, {filename:file});
-  const v = win[name];
-  ok(!!v, `${name} did not appear on window after evaluating ${file}`);
-  return v as T;
-}
+// Mode 2 — a `vm` context with a `window` shim, for an IIFE that assigns `window.<name>` —
+// is RETIRED (see the file header). `_layer-canon.js` was its last caller; the layer roster
+// now reads Mode 3 (`shared.layers` in the roster bundle) with `need()` below, and no other
+// roster ever needed the window-shim path, so `readWindowGlobal` is deleted rather than kept
+// idle for a hypothetical future caller.
 
 /** Mode 4 — lift a named array/object literal out of a source file, brace-balanced.
  *  It is a READ of the canon, not a copy of it: the bytes come from the app every run. */
@@ -296,10 +287,16 @@ export function loadRosters(appRoot:string, artifactPath?:string):Rosters {
     return a.shared!.raymarchOps!;
   }, [] as RosterInput[]);
 
-  const layers = attempt('layers', () => {
-    const L = readWindowGlobal<{BG_MODES:ModeDescriptor[];FILL_MODES:ModeDescriptor[]}>(
-      F('js','formats','_layer-canon.js'),'A8LayerCanon');
-    return {bgModes:L.BG_MODES ?? [], fillModes:L.FILL_MODES ?? []};
+  // Mode 3 — this used to be a Mode-2 evaluation of `_layer-canon.js` reading
+  // `A8LayerCanon.BG_MODES`/`FILL_MODES` off the window shim. The export's `shared.layers`
+  // (`{bg, fill}`) carries the same two mode lists, byte-equivalent field-for-field
+  // (verified against the app tree), so the last live window-global read retires here.
+  const layers = need('layers', a => {
+    ok(Array.isArray(a.shared?.layers?.bg) && a.shared!.layers!.bg!.length > 0,
+      'the bundle carries no `shared.layers.bg` — the export is stale or the layer canon moved');
+    ok(Array.isArray(a.shared?.layers?.fill) && a.shared!.layers!.fill!.length > 0,
+      'the bundle carries no `shared.layers.fill` — the export is stale or the layer canon moved');
+    return {bgModes:a.shared!.layers!.bg!, fillModes:a.shared!.layers!.fill!};
   }, {bgModes:[] as ModeDescriptor[], fillModes:[] as ModeDescriptor[]});
 
   // Mode 3 — `material`/`lighting` used to be Mode-2 evaluations of `_mesh-material.js`

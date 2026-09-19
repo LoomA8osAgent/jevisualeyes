@@ -74,7 +74,7 @@ test('an ABSENT bundle is REPORTED, and every menu that needed it is empty (fals
   const r = loadRosters(cfg.appRoot, ABSENT);
   const named = r.missing.map(m => m.roster).sort();
   for (const roster of ['rosters.json','waveforms','easings','rmBase',
-                        'material','lighting','raymarchInputs'])
+                        'material','lighting','raymarchInputs','layers'])
     assert.include(named, roster, `${roster} must name itself in missing[]`);
   for (const m of r.missing) assert.ok(m.reason.trim().length > 0, `${m.roster}: a reason, not a flag`);
   assert.deepEqual(r.waveforms, []);
@@ -83,6 +83,7 @@ test('an ABSENT bundle is REPORTED, and every menu that needed it is empty (fals
   assert.deepEqual(r.material, []);
   assert.deepEqual(r.lighting, []);
   assert.deepEqual(r.raymarchInputs, []);
+  assert.deepEqual(r.layers, {bgModes:[], fillModes:[]});
   assert.equal(r.provenance, null, 'no bundle ⇒ no provenance, never a fabricated one');
   // The rosters that do NOT come from the bundle are unaffected — a missing artifact empties
   // its own menus and nothing else. `ops` is unaffected on purpose: it stays on Mode 1
@@ -92,14 +93,15 @@ test('an ABSENT bundle is REPORTED, and every menu that needed it is empty (fals
   assert.notInclude(named, 'ops');
 });
 
-/* ── the shared canons: material / lighting / raymarchOps, read Mode 3 ───────────────
+/* ── the shared canons: material / lighting / raymarchOps / layers, read Mode 3 ──────
  *
- *  These three used to be Mode-2 window-global evaluations of `_mesh-material.js`
+ *  These four used to be Mode-2 window-global evaluations of `_mesh-material.js`
  *  (itself seeding `_point-line-texture.js` + `_texmapping-canon.js`) / `_lighting.js` /
- *  `_raymarch-ops.js`. The export now carries their resolved descriptor rows directly, so
- *  what is asserted here is the SEAM: the bundle's own rows arrive unmodified, and an
- *  absent bundle empties all three menus (covered above) rather than falling back to a
- *  stale window-global read. */
+ *  `_raymarch-ops.js` / `_layer-canon.js`. The export now carries their resolved
+ *  descriptor rows directly, so what is asserted here is the SEAM: the bundle's own rows
+ *  arrive unmodified, and an absent bundle empties all four menus (covered above) rather
+ *  than falling back to a stale window-global read. `layers` was the LAST of the four —
+ *  `readWindowGlobal` (Mode 2) has no remaining caller and is deleted with it. */
 
 test('material / lighting / raymarchInputs arrive from `shared.*` exactly as the export wrote them', () => {
   assert.equal(fixture.material.length, 2);
@@ -114,6 +116,18 @@ test('material / lighting / raymarchInputs arrive from `shared.*` exactly as the
   for (const l of fixture.lighting) assert.equal(l.DESCRIPTION, undefined);
   // raymarchOps carries DESCRIPTION already, endpoint-form on at least one entry.
   assert.match(fixture.raymarchInputs[0].DESCRIPTION ?? '', / — /);
+});
+
+test('layers arrives from `shared.layers.{bg,fill}` as bgModes/fillModes, exactly as the export wrote it', () => {
+  assert.deepEqual(fixture.layers.bgModes, [
+    {key:'color',label:'color'}, {key:'texture',label:'texture'},
+    {key:'color+texture',label:'color + texture'}
+  ]);
+  assert.deepEqual(fixture.layers.fillModes, [
+    {key:'color',label:'color'}, {key:'texture',label:'texture'},
+    {key:'color+texture',label:'color + texture'},
+    {key:'color+texture+layer',label:'color + texture + layer'}
+  ]);
 });
 
 /* ── the DESCRIPTION-over-TIP rule (`samplers.ts stackKnobs` case 'mathops') ──────────
