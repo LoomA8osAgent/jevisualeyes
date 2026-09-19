@@ -130,6 +130,17 @@ export interface Rosters {
   raymarchInputs:RosterInput[];
   rmBase:string;
   layers:{bgModes:ModeDescriptor[]; fillModes:ModeDescriptor[]};
+  /** the mesh-material descriptor roster (`_mesh-material.js` `A8MeshMaterial.INPUTS`) —
+   *  shared between M3DEngine and the SDF submodule's mesh-route mode, so it is read here
+   *  once rather than per consumer (SHARED-CANON-DUPLICATED-PER-ENGINE). These carry `TIP`,
+   *  not the endpoint-form `DESCRIPTION` §8 requires — so `stackKnobs` reads only
+   *  `DESCRIPTION` here exactly as it does for every other roster, and every material knob
+   *  is honestly non-composable until that sentence is authored (the same debt shape as the
+   *  408-knob bucket C, never guessed at). */
+  material:RosterInput[];
+  /** the light-rig descriptor roster (`_lighting.js` `A8Lighting.INPUTS`), same shared-canon
+   *  shape and the same undescribed-today state as `material` above. */
+  lighting:RosterInput[];
   fx:FxEntry[];
   waveforms:Waveform[];
   /** the easing library, curves included — the second half of the movement vocabulary. */
@@ -270,6 +281,26 @@ export function loadRosters(appRoot:string, artifactPath?:string):Rosters {
     return {bgModes:L.BG_MODES ?? [], fillModes:L.FILL_MODES ?? []};
   }, {bgModes:[] as ModeDescriptor[], fillModes:[] as ModeDescriptor[]});
 
+  const material = attempt('material', () => {
+    // `_mesh-material.js` reads two sibling canons at module scope — `A8PointLineTexture`
+    // (its own texture-compositing GLSL primitives) and `A8TexMappingCanon` (the face
+    // material's texture mapping) — so both are read first and seeded in, the same pattern
+    // the raymarch roster uses to reach `A8OpsCanon`. Neither reads anything further itself.
+    const plt = readWindowGlobal<Record<string,unknown>>(
+      F('js','formats','_point-line-texture.js'),'A8PointLineTexture');
+    const texmap = readWindowGlobal<Record<string,unknown>>(
+      F('js','formats','_texmapping-canon.js'),'A8TexMappingCanon');
+    const M = readWindowGlobal<{INPUTS:RosterInput[]}>(
+      F('js','formats','_mesh-material.js'),'A8MeshMaterial',
+      {A8PointLineTexture:plt, A8TexMappingCanon:texmap});
+    return M.INPUTS ?? [];
+  }, [] as RosterInput[]);
+
+  const lighting = attempt('lighting', () => {
+    const L = readWindowGlobal<{INPUTS:RosterInput[]}>(F('js','formats','_lighting.js'),'A8Lighting');
+    return L.INPUTS ?? [];
+  }, [] as RosterInput[]);
+
   const fx = attempt('fx', () => {
     const p = F('user-media','shaders','fx','manifest.json');
     ok(existsSync(p), `no fx manifest at ${p}`);
@@ -305,7 +336,8 @@ export function loadRosters(appRoot:string, artifactPath?:string):Rosters {
   const r:Rosters = {
     appRoot,
     ops:{all, injectedNames, injected:all.filter(o => injectedNames.includes(o.NAME))},
-    raymarch, raymarchInputs, rmBase, layers, fx, waveforms, easings, provenance, roles, missing
+    raymarch, raymarchInputs, rmBase, layers, material, lighting, fx, waveforms, easings,
+    provenance, roles, missing
   };
   cache.set(cacheKey, r);
   return r;

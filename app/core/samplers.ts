@@ -80,7 +80,15 @@ const fromRoster = (
   def:unknown, description:string|undefined, role:string|null
 ):StackKnob => {
   const lo = typeof min === 'number' ? min : 0, hi = typeof max === 'number' ? max : 0;
-  const d = typeof def === 'number' ? def : lo;
+  // A DEFAULT that is itself out of [lo, hi] — an enum knob's numeric index (`materialType`,
+  // `light1Type`) declared with no MIN/MAX at all, so lo/hi fall back to the degenerate [0, 0]
+  // above — is clamped exactly the way a non-numeric DEFAULT (a `color` roster entry's array)
+  // already was: the knob is non-composable either way, and a look must still hold it at a
+  // value `assertLookInBounds` accepts, never at the roster's raw, unclamped number (I4 — found
+  // wiring `material`/`lighting`; a menu roster with no MIN/MAX is exactly what `mathops`/`shade`
+  // have not yet needed to declare, not a case unique to those two).
+  const raw = typeof def === 'number' ? def : lo;
+  const d = raw < lo ? lo : raw > hi ? hi : raw;
   const sentence = (typeof description === 'string' && description.trim()) ? description.trim() : null;
   const bad = hi <= lo ? `degenerate range [${lo}, ${hi}]`
     : !sentence ? 'no situation sentence (docs/COMPOSER.md §8)' : null;
@@ -103,6 +111,12 @@ export function stackKnobs(record:RecordDescriptor, stackId:StackId, rosters:Ros
         .map(o => fromRoster(o.NAME, o.LABEL, o.MIN, o.MAX, o.DEFAULT, o.TIP, null));
     case 'shade':
       return rosters.raymarchInputs
+        .map(i => fromRoster(i.NAME, i.LABEL, i.MIN, i.MAX, i.DEFAULT, i.DESCRIPTION, null));
+    case 'material':
+      return rosters.material
+        .map(i => fromRoster(i.NAME, i.LABEL, i.MIN, i.MAX, i.DEFAULT, i.DESCRIPTION, null));
+    case 'lighting':
+      return rosters.lighting
         .map(i => fromRoster(i.NAME, i.LABEL, i.MIN, i.MAX, i.DEFAULT, i.DESCRIPTION, null));
     case 'layers':
     case 'fx':

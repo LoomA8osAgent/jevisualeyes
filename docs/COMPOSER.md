@@ -503,7 +503,25 @@ by editing this repo.
 | `shade` | the raymarch shading-op roster | `raymarch` | `contrast` · `warmth` · `depth` |
 | `layers` | the layer canon's background + fill modes and slot hosts | `bg` / `layer:N` | `warmth` · `density` |
 | `fx` | the FX library manifest | `fx` | `contrast` · `motion` |
+| `material` | the mesh-material descriptor roster | `material` | `contrast` |
+| `lighting` | the light-rig descriptor roster | `lights` | `warmth` |
 | `modulation` | the record's composable knobs × the MOVEMENT roster (waveforms + easings) | — (binds ride the data router) | `motion` |
+
+**`material` and `lighting` are offered only when the record's own `route` admits a mesh**
+(`mesh` or `either`) — the symmetric gate to `shade`'s marcher-only one, for the same reason:
+a pure-raymarch record has no mesh material or three.js light rig to set. Both answer a single
+axis each (`contrast` for the material's gloss/roughness reading, `warmth` for the light rig's
+colour temperature) — deliberately, since both already carry full §6/§6.1 vocabulary, so
+nothing was added to the axis tables. **Their descriptor roster carries `TIP`, not the
+endpoint-form `DESCRIPTION` §8 requires**, so both read as 0% composable today — the same
+honest debt shape as bucket C, reported by `stackKnobs`/`Knob.skipReason` and never guessed at.
+
+⚠ **Two `_groupId` families the operator named are NOT wired here, surfaced rather than
+resolved.** `color`/`sub:palette` knobs exist but are scattered per-engine source with no
+single shared-canon module the composer can read the way `_mesh-material.js` /
+`_lighting.js` are — a colour/palette stack needs that shared roster built first. `world` /
+`slices` (`_sdf-template.js`, the compound-SDF instancing lattice) read as card-family scoped
+rather than a capability every route shares, unlike material/lighting.
 
 The table is the one in `app/core/records.ts:131` (`STACK_SOURCES`), which carries each
 roster's concrete source; the axis column is `STACK_AXES` (`app/core/axes.ts:73`). Each roster

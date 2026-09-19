@@ -65,14 +65,23 @@ export const AXES:Record<string,Axis> = {
     ANY]}
 };
 
-/** Each stack answers ONLY the axes that mean something for it (`docs/COMPOSER.md` §9). */
+/** Each stack answers ONLY the axes that mean something for it (`docs/COMPOSER.md` §9).
+ *
+ *  `material` and `lighting` (I4) deliberately answer ONE axis each — `contrast` for the
+ *  mesh material's own gloss/roughness reading, `warmth` for the light rig's colour
+ *  temperature — both already fully vocabularied by §6/§6.1 and the `AXIS_POSITION` table.
+ *  No axis VALUE was added for either: growing an axis's option list is a menu change this
+ *  addition does not need, and the two stacks are honest about being unbiased on every axis
+ *  they do not name (`docs/COMPOSER.md` §6 — "a role with no row is simply unbiased"). */
 export const STACK_AXES:Record<StackId,string[]> = {
   shape:['density','contrast','order'],
   mathops:['motion','order','depth'],
   shade:['contrast','warmth','depth'],
   layers:['warmth','density'],
   fx:['contrast','motion'],
-  modulation:['motion']
+  modulation:['motion'],
+  material:['contrast'],
+  lighting:['warmth']
 };
 
 export const STACK_LABELS:Record<StackId,string> = {
@@ -81,7 +90,9 @@ export const STACK_LABELS:Record<StackId,string> = {
   shade:'the raymarch shading operators',
   layers:'the background and fill layers',
   fx:'the post-pass effect chain',
-  modulation:'which parameters move'
+  modulation:'which parameters move',
+  material:'the mesh material\'s own parameters',
+  lighting:'the light rig'
 };
 
 export const STACKS:StackId[] = Object.keys(STACK_AXES) as StackId[];

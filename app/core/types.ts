@@ -78,7 +78,7 @@ export interface DecisionReceipt {
 /* ── the composed artifact (docs/COMPOSER.md §7) ────────────────────────────────── */
 
 /** One part of a card the composer sets as a whole (`docs/COMPOSER.md` §9). */
-export type StackId = 'shape'|'mathops'|'shade'|'layers'|'fx'|'modulation';
+export type StackId = 'shape'|'mathops'|'shade'|'layers'|'fx'|'modulation'|'material'|'lighting';
 
 /** An axis coordinate: axis id → the chosen situation word (docs/COMPOSER.md §6). */
 export type AxisCoordinate = Record<string,string>;

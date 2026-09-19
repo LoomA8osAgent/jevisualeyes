@@ -120,11 +120,24 @@ export interface RecordIndex {
  *  | `shade`      | the raymarch shading-op roster                     | `raymarch`         |
  *  | `layers`     | the layer canon's bg / fill modes + slot hosts     | `bg` / `layer:N`   |
  *  | `fx`         | the FX library manifest                            | `fx`               |
+ *  | `material`   | the mesh-material descriptor roster                | `material`         |
+ *  | `lighting`   | the light-rig descriptor roster                    | `lights`           |
  *  | `modulation` | the record's composable knobs × the MOVEMENT roster | — (binds ride the data router) |
  *
  *  The `shade` stack is offered ONLY when the record's own `route` admits a marcher
  *  (`raymarch` or `either`) — a mesh-route record has no raymarch shading hooks to layer
- *  onto, and offering it would be a menu whose every option is inert.
+ *  onto, and offering it would be a menu whose every option is inert. Symmetrically,
+ *  `material` and `lighting` are offered ONLY when `route` admits a mesh (`mesh` or
+ *  `either`) — a pure-raymarch record has no mesh material or three.js light rig to set.
+ *
+ *  ⚠ material/lighting scope, surfaced not resolved: the artifact carries other shared `_groupId` families
+ *  the operator named — `color`/`sub:palette` (scattered per-engine, no single shared-canon
+ *  module a composer can read the way `_mesh-material.js` / `_lighting.js` are read) and
+ *  `world` / `slices` (`_sdf-template.js`, the compound-SDF instancing lattice — card-family
+ *  scoped, not a medium-wide capability the way material/lighting are). Neither is wired
+ *  here; a colour/palette stack needs its shared roster built FIRST (`docs/PLAN.md` — not
+ *  this repo's call), and world/slice/deform read as SDF-template-specific rather than a
+ *  capability every route shares.
  */
 export const STACK_SOURCES:Record<StackId,{from:string;groupId:string|null}> = {
   shape:     {from:'the record\'s own inputs map (user-media/shapes/index.json)', groupId:'shape'},
@@ -132,10 +145,13 @@ export const STACK_SOURCES:Record<StackId,{from:string;groupId:string|null}> = {
   shade:     {from:'A8RaymarchOps.OPS (js/formats/_raymarch-ops.js:50)', groupId:'raymarch'},
   layers:    {from:'A8LayerCanon BG_MODES / FILL_MODES (js/formats/_layer-canon.js:1345)', groupId:'bg'},
   fx:        {from:'the FX library manifest (user-media/shaders/fx/manifest.json)', groupId:'fx'},
+  material:  {from:'A8MeshMaterial.INPUTS (js/formats/_mesh-material.js)', groupId:'material'},
+  lighting:  {from:'A8Lighting.INPUTS (js/formats/_lighting.js)', groupId:'lights'},
   modulation:{from:'the record\'s composable knobs × the movement roster — the LFO waveform bank plus the easing library, both from user-media/shapes/rosters.json', groupId:null}
 };
 
 const MARCHING_ROUTES = new Set(['raymarch','either']);
+const MESH_ROUTES = new Set(['mesh','either']);
 
 /* ── reading one record ─────────────────────────────────────────────────────────── */
 
@@ -184,6 +200,7 @@ function toDescriptor(raw:RawRecord, rosters:Rosters):RecordDescriptor {
 
   const stacks:StackId[] = ['shape','mathops','layers','fx'];
   if (MARCHING_ROUTES.has(raw.route)) stacks.splice(2, 0, 'shade');
+  if (MESH_ROUTES.has(raw.route)) stacks.push('material','lighting');
   if (composableKnobs.length) stacks.push('modulation');
 
   const situation = (typeof raw.DESCRIPTION === 'string' && raw.DESCRIPTION.trim())
