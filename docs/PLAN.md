@@ -25,7 +25,7 @@ provider never change. "Preset composer" names the first increment, not the dest
 | **I2** | **Providers.** The endpoint becomes configuration; `local` is the loopback reference runtime and the default; `fixture` is the planted-map provider; `jev` sits behind a key. The validation tightens to the strict argmax rule and the fixed 1e-3 sum tolerance (`docs/COMPOSER.md` §4.1). | ONE live call through the client to the local runtime, answered and validated — **plus** the fixture leg planting a bad answer (probabilities summing to 1.8, a `choice` outside the submitted set) and the client **refusing** it with both reasons printed. *A validator that has never refused is indistinguishable from one that cannot.* | **LANDED** (`12b59a4`) |
 | **I3** | **Record descriptor → candidate looks. Code only, no model.** The per-stack samplers: seeded, N complete looks per stack from a coordinate, each with a stable id and one readable line. Reads the shared rosters and the record's own inputs; transcribes none of them (`docs/COMPOSER.md` §9). | ONE node check on ONE record: every sampled value inside its knob's `[MIN, MAX]`, ids stable across runs at the same seed, descriptions non-empty, and the skipped set an EXACT match for the descriptor's non-composable knobs — falsified once by handing the guard a bound-violating look and requiring it to throw. | **LANDED** (`12b59a4`); **roster reads EXTENDED** — the two named-literal reads I3 shipped as a reported finding are replaced by a read of the app's own exported bundle, which also brings the easing library into the movement menu (below) |
 | **I4** | **The smallest end-to-end composer over I3.** The phase machine swapped: given tag → sample → motion Nouls → a bounded accept/resample per stack → assemble one snapshot. Reduced **by choice**, to prove the whole loop with the fewest moving parts — nothing is blocked. | ONE record, ONE tag, fixture provider, end to end → a composed snapshot on disk with its receipts, and a re-run from the stored responses at the same seed producing a **byte-identical** snapshot. | **LANDED** — `npm run compose:fixture` + `tests/compose.test.ts`: subject resolved (never named) to `aizawa-attractor-tube` at `motion:pulse density:busy contrast:hard warmth:cold order:regular depth:deep`, seed 1743, 2 fixture calls (motion Nouls, then the 6-stack looks bundle) → 9 receipts, snapshot `7aff5d6a0408ad40…`, replayed from the stored responses through `ReplayProvider` to the same sha256; the accept check and the resample cap each falsified once |
-| **I5** | **Receipts → provenance, and write through the consuming app's own path.** `generation.provenance` on the snapshot, the coverage-sweep row for that new field in the same commit, one provenance-chain append, and the write going out as the app's own preset-bank POST, read back and asserted identical. | The user-path macro `jev.composed-preset-loads`: Library → click the record → card delivered → open its preset row → recall the composed slot → params, active op sets and binds all arrive and `generation.provenance` survives the round trip. Fixture provider; assert the EFFECT, settle on content identity. | planned |
+| **I5** | **Receipts → provenance, and write through the consuming app's own path.** `generation.provenance` on the snapshot, the coverage-sweep row for that new field in the same commit, one provenance-chain append, and the write going out as the app's own preset-bank POST, read back and asserted identical. | The user-path macro `jev.composed-preset-loads`: Library → click the record → card delivered → open its preset row → recall the composed slot → params, active op sets and binds all arrive and `generation.provenance` survives the round trip. Fixture provider; assert the EFFECT, settle on content identity. | **LANDED** — `jev.composed-preset-loads` GREEN on an isolated clone (:8471): the resolver picked `assay-knot-tube`, the composed slot was found in the card's own hydrated bank BY ITS PROVENANCE, a real click recalled it, and the card came back with 4/4 unbound declared inputs exact, 2/2 ops live (0 invented, 0 declined), the one bind live as an oscillator receiver with its bracket in `card.ranges`, and `generation.provenance` carrying 11 receipts + 1 chain entry — then re-saved through the `+` dialog into slot 2 at the same `unitSha256` |
 | **I6** | **Axes + N-way + CALL 3 — the full pipeline** (`docs/COMPOSER.md` §7): the eight axis Choices (`shape`/`mathops`/`shade`/`layers`/`fx`/`modulation`/`material`/`lighting` — the last two added by the material/lighting stacks, one axis each, no new axis-table growth), the N-way per-stack look pick, the waveform Choice and the rate Score, with CALL 1's sub-questions chunked at ≤ 6 per request. | I5's macro again, run against the local provider with the full pipeline — plus a capability leg: pointed at a provider whose export caps the option slot, the run **reports a capability refusal naming the cap** and neither crashes nor degrades silently. | planned |
 | **I7** | **Bake the corpus** — 495 records × 4 tags: the run, its concurrency, its resume, its report. | The run completes and the report **names every skipped record and why**; a spot sample of composed slots loads through I5's macro. | planned, gated on the sentence lift (§2 risk 1) |
 | **I8** | **The brick composer** — the menu widens to *which node goes in this slot*, and the answer composes a **new record** rather than a preset for an existing one. The model still writes no GLSL: it picks a node id from a closed set and the emitter writes the shader, which is the only reason a composer of shaders is expressible in a decision model at all. Output is emitted as ISF2 (<https://github.com/LoomA8osAgent/ISF2>) and appends its per-node receipts through the standard's own provenance call. | One composed tree, fixture provider → the emitted output passes the standard's validation and a compile, the tree's JS evaluator agrees with the marched field at a sample of points, the knob-derivation tool mints its inputs, and the record loads through the ordinary Library path. Falsified once by composing a tree whose conservative Lipschitz bound is out of range and asserting the enumerator **never offered it**. | blocked on two things, §1.1 |
@@ -44,6 +44,37 @@ CALL 3 are I6 and are absent, not stubbed; `generation.provenance` and the app's
 preset-bank write are I5's; the resample counter lives on the composer instance, so a RESUMED
 job starts its cap afresh — honest for a single-unit run and a thing I7's runner will have to
 own when a bake resumes mid-unit.
+
+**What I5 landed, and the one thing it MEASURED that changes I7.** `app/core/slot.ts` renders
+a composed unit into the app's card-snapshot shape (routing each sampled key form — `<NAME>`,
+`<NAME>.blend` → an INTEGER index read out of the app's own 30-mode roster, `opActive.<scope>`,
+`postPassChain`, `bind:<NAME>` → an oscillator receiver plus its bracket in `ranges`), attaches
+`generation.provenance` (§5), and `app/server/deliver.ts` writes it through the app's own
+endpoint with a compare-and-swap against a live card and a read-back assertion. Two refusals are
+exercised rather than described, and two things are refused by design: a movement the app's
+easing library cannot express is DROPPED AND NAMED rather than defaulted to a curve that happens
+to exist (CALL 3 is I6's), and slot `D` is never written.
+
+⚠ **THE BANK KEY CANNOT BE DERIVED OFFLINE — measured 2026-09-20, and I7 has to plan around it.**
+A record's card source is COMPOSED AT LOAD TIME and what it composes to depends on LIVE APP
+STATE: the user palette store is emitted into the shader's palette roster, so adding one palette
+changes the composed bytes and therefore the `src_<sha>` the bank is keyed by. An offline
+derivation running the app's own compiler in node was built, run, and REJECTED by the app's own
+key — `src_f644e2…` against the card's `src_80d395…`, a 212-byte divergence that was the palette
+list plus one environment-dependent comment line. **It is deleted, not patched:** a writer that
+guesses a key does not fail loudly, it writes a bank no card will ever open. The key now comes
+from a REAL loaded card (`jev.composed-preset-key`, an input probe, not a proof) and is handed
+to `deliver:fixture --key`. **For I7 that means a bake cannot key 495 records from a file** — it
+needs either the app itself to publish a record→key artifact (the shape `rosters.json` and
+`index.json` already have), or a browser in the loop. Naming it here so it is a design input
+rather than a discovery at bake time.
+
+**And one composer bug the app found for us.** `opActive.sdf` was emitted FLAT (`{<opKey>:1}`)
+while the app normalises `{<termId>:[<opKey>…]}` with `Object.keys(v)` — so `Object.keys(1)` is
+`[]` and EVERY composed op was dropped, silently, with the slot looking perfectly well formed.
+It now nests under `root`, the app's own name for the whole record; `CANDIDATE_MAP_VERSION`
+moved to v3 (§12 — the sampled shape moved), and a sampler test asserts the shape so a
+regression fails a test rather than a recall nobody is watching.
 
 **The roster read, closed where I3 left it open.** I3 shipped two values — the LFO waveform
 bank and the raymarch-op prefix — read by lifting a named literal out of app source, and
@@ -164,7 +195,12 @@ consuming app's preset-bank endpoint, which is last-write-wins over the whole ba
 the operator may have the app open on the same source. A bake run and a live card saving the
 same source would silently clobber one another. The rule belongs in the runner: **the bake
 refuses to write a key whose card is live**, established by reading the bank back and comparing
-before the write — the same read-back I5 already performs.
+before the write — the same read-back I5 already performs. **I5 BUILT IT (LANDED):** the
+endpoint is last-write-wins over the whole bank BODY, so the writer reads the bank, builds the
+merge, reads it AGAIN immediately before the POST, and REFUSES if it moved — a compare-and-swap,
+because there is nothing to lock against a browser. Exercised, not described: a transport that
+mutates the bank between the two reads must refuse WITHOUT a POST, and a transport that stores
+something other than what was sent must refuse after the read-back.
 
 ---
 

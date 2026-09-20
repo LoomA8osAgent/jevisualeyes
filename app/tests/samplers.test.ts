@@ -468,8 +468,17 @@ test('[menus] the SDF domain-warp op menu joins `mathops` ONLY for a record whos
   let sawSdfOps = false;
   for (const seed of [1, 2, 3, 4, 5, 6, 7, 8])
     for (const look of sampleLooks(march, 'mathops', COORD, {n:N, seed, rosters})) {
-      const set = look.params['opActive.sdf'] as Record<string,number>|undefined;
-      if (set && Object.keys(set).length) {
+      // I5: the field is nested under the app's own whole-record target key (`root`), because
+      // the app normalises `{<termId>:[<opKey>…]}` and a FLAT set normalised to nothing —
+      // every op silently dropped (`core/samplers.ts` §opActive.sdf). So the shape is
+      // asserted here too: a regression back to the flat form has to fail a test, not a
+      // downstream recall nobody is watching.
+      const nested = look.params['opActive.sdf'] as Record<string,Record<string,number>>|undefined;
+      if (nested && Object.keys(nested).length) {
+        assert.deepEqual(Object.keys(nested), ['root'],
+          'opActive.sdf must nest under the app\'s whole-record target key');
+        const set = nested['root'];
+        assert.ok(set && Object.keys(set).length, 'the nested op set is empty');
         sawSdfOps = true;
         for (const k of Object.keys(set)) assert.ok(admittedIds.has(k), `drawn sdf op "${k}" is not on the menu`);
       }

@@ -342,17 +342,24 @@ export function sampleLooks(record:RecordDescriptor, stackId:StackId,
       // `mathops` stack's own membership picture, offered only for a record whose `route`
       // admits a marcher (the same gate `shade` uses — `records.ts admitsMarching`). Drawn as
       // a bounded SET, same shape as `sampleFx`'s post-pass chain: a stack where every option
-      // is on is a pile, not a look. The real snapshot nests these under a term id
-      // (`card.opActive.sdf = {<termId>:{<opKey>:1}}`); this repo has no term identity to
-      // draw from a record descriptor alone, so what is emitted here is the flat membership
-      // set `{<opKey>:1, …}` — the term-nesting is a named follow-on, not built here
-      // (composer.ts's own precedent: "deliberately absent rather than stubbed").
+      // is on is a pile, not a look.
+      //
+      // ⚠ NESTED UNDER `root`, AND THAT IS NOT AN INVENTED TERM ID (I5, measured). The app
+      // reads this field as `{<termId>:[<opKey>…]}` and normalises with `Object.keys(v)`
+      // (`js/formats/_sdf-swap.js _normOps`), so the FLAT `{<opKey>:1}` this used to emit
+      // normalised to `Object.keys(1)` = `[]` and EVERY op was dropped — silently, with the
+      // slot looking perfectly well formed. `root` is the app's OWN name for the whole
+      // record (`_sdf-swap.js` `{key:'root', label:'whole'}`, the target the op-target enum
+      // offers beside `each` and the per-component keys), which is exactly what a composer
+      // composing FOR a record means. Per-component targeting still needs a term identity no
+      // record descriptor carries, and that half remains a named follow-on.
       if (stackId === 'mathops' && admitsMarching(record.route)) {
         const pool = composableMenuValues(rosters.menus['opActive.sdf']);
         if (pool.length) {
           const k = setSize(rnd, Math.min(3, pool.length), biasOf(coordinate, ['order','depth']));
           const picked = take(pool, k, rnd);
-          if (picked.length) params['opActive.sdf'] = Object.fromEntries(picked.map(p => [p.id, 1]));
+          if (picked.length)
+            params['opActive.sdf'] = {root: Object.fromEntries(picked.map(p => [p.id, 1]))};
         }
       }
     }

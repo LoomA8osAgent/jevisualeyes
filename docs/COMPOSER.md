@@ -259,12 +259,25 @@ visible in the record. The receipts for one composition ride the composed artifa
 provenance field that vanishes on recall is the worst kind of hole — while the SQLite journal
 keeps the run's own copy (`app/server/db.ts:92`).
 
-**Where the receipts ride TODAY (I4), and where they are going (I5).** A composed unit is
+**Where the receipts ride (I4 the artifact, I5 the delivered slot).** A composed unit is
 written as an artifact (`ComposedUnit`, `app/server/compose.ts`) carrying the snapshot, its
 sha256, its receipts, and — one thing more than §5 requires — the accepted REQUEST and
 RESPONSE of every committed decision, which is what lets the unit be re-run without a
-provider at all. `generation.provenance` on the snapshot itself, and the write going out
-through the consuming app's own preset-bank path, are I5's (`docs/PLAN.md` §1).
+provider at all.
+
+**I5 LANDED (2026-09-20): `generation.provenance` is the identity object, and it is built at
+the DELIVERY boundary, not inside the draft.** On the `CompositionDraft` the field is still the
+`live|synthetic|mixed` string and is untouched — I4's byte-identity acceptance hashes that
+snapshot and must keep hashing the same bytes, and a unit sha nested inside the thing it hashes
+is uncomputable rather than merely awkward. `app/core/slot.ts renderSlot` widens it as the unit
+becomes a preset slot: the draft's string becomes `provenance.mode` (nothing is laundered — a
+fixture run reads `synthetic` in the app exactly as in the journal) beside the provider id /
+class / RETURNED model, the roster export's own provenance, `recordId` / `tag` / `seed`, the
+unit sha, `replayOf` when there is one, every receipt, and ONE chain entry in the consuming
+app's own `prvAppend` shape. The consuming app registers `generation` as a named snapshot field
+and carries it VERBATIM both ways (`specs/preset-json.md` §What presets save; its coverage-sweep
+row shipped in the same commit), so it survives save → recall → save. Acceptance:
+`jev.composed-preset-loads`.
 
 **One more, ADDITIVE and OPTIONAL field rides the same shape**: each `stacks[stack]` entry may
 carry `lookVerdict:{receiptId, answers}` (`app/core/types.ts:109`) — the eye's own read of a
@@ -445,8 +458,15 @@ reduction is by choice rather than by obstacle:** the tag GIVES the coordinate, 
 axis half is not asked and its motion-Noul half is — chunked at ≤ 6 per request, §7.1 —
 CALL 2 runs with a **bounded accept/resample per stack**, CALL 3 is not asked at all (a
 bind's movement shape is still SAMPLED into the `modulation` stack's own look, exactly as
-the sampler draws it), and ASSEMBLY writes a composed-unit FILE rather than the consumer's
-preset bank, which is I5's path to own. The axis Choices and CALL 3 are I6.
+the sampler draws it), and ASSEMBLY writes a composed-unit FILE. **I5 (LANDED) carries that
+file the rest of the way:** `app/core/slot.ts` renders it into the consuming app's own
+card-snapshot shape and `app/server/deliver.ts` writes it through the app's own
+`POST /api/preset-bank/<key>`, refusing a bank that moved between two reads and asserting the
+stored slot byte-identical afterwards. ⚠ The BANK KEY is handed in, never derived: a record's
+card source composes at LOAD time against live app state (the user palette store rides its
+palette roster), so the `src_<sha>` its bank is keyed by is not an offline fact — measured, and
+the offline derivation was deleted rather than patched (`docs/PLAN.md` §2). The axis Choices and
+CALL 3 are I6.
 
 **The accept/resample, and why a committed look is re-read by code.** `acceptLook`
 (`app/core/composer.ts`) re-checks a committed look before the unit may finish, on two

@@ -29,7 +29,12 @@ import type {RecordDescriptor} from './records.js';
 import type {Rosters} from './rosters.js';
 import {sampleAllStacks} from './samplers.js';
 
-export const CANDIDATE_MAP_VERSION = 'a8os.jev.candidates.v2';
+// v3 (I5, 2026-09-20): the SAMPLED SHAPE moved — `opActive.sdf` is now nested under the
+// app's own whole-record target key (`{root:{<opKey>:1}}`) instead of the flat membership
+// set, which the app normalised to nothing (`core/samplers.ts` §opActive.sdf). A changed
+// sampled shape bumps this by the rule in `docs/COMPOSER.md` §12, so a receipt written
+// before the fix cannot be mistaken for one written after it.
+export const CANDIDATE_MAP_VERSION = 'a8os.jev.candidates.v3';
 
 /** id → the one readable line. This IS a Choice question's `criteria` (`types.ts`
  *  `ChoiceQuestion`): string-valued throughout, never a nested object, because the menu the
