@@ -173,10 +173,39 @@ export interface ShadingInput {
   notComposableReason?:string;
 }
 
+/** One incompatible/inert combination, as a separate lane exports it into
+ *  `shared.shading.constraints` (derived from the shader itself: "some material modes do
+ *  not work with some lighting modes and vice versa" — operator, 2026-09-20). READ, never
+ *  transcribed: this repo does not reason about which rows conflict, it only excludes an
+ *  offer that would complete a banned combination (`shading-samplers.ts` `violatesConstraint`). */
+export interface ShadingConstraint {
+  rows:{group:string; row:string; option:unknown; label?:string}[];
+  verdict:'incompatible'|'inert';
+  /** groups left with NO live row at all under this entry's condition (empty when the
+   *  entry is a single row's own value being inert, unconditionally). */
+  darkGroups?:string[];
+  hides?:string[];
+  why?:string;
+  evidence?:unknown;
+}
+
+/** The shape the constraints lane actually publishes (`decision-models.md` §P2.10,
+ *  2026-09-20) — an OBJECT, not a bare array: `entries` is the per-combination verdict list
+ *  this repo filters offers against; `method`/`axes`/`baseDrivers`/`glslNotes`/`combinations`
+ *  are the derivation's own bookkeeping, carried through unread beyond this type. */
+export interface ShadingConstraints {
+  method?:string;
+  entries:ShadingConstraint[];
+  axes?:unknown; baseDrivers?:Record<string,unknown>; glslNotes?:unknown; combinations?:unknown;
+}
+
 export interface ShadingRoster {
   subject:{id:string; label:string; route:string; file:string};
   groups:ShadingGroup[];
   inputs:ShadingInput[];
+  /** absent until the constraints lane lands (`docs/PLAN.md` §1.0b) — read as absent until
+   *  then, never waited on synchronously inside a pure roster read. */
+  constraints?:ShadingConstraints;
 }
 /** The literal auditor's role table — role key → [name prefix, the shared gloss]. */
 export interface RoleGloss { role:string; prefix:string; gloss:string }

@@ -149,16 +149,15 @@ export function sampleBankLook(gid:string, slot:number, attempt:number, seed:num
   return {id:`${gid.replace(/[^a-z0-9]/gi,'_')}_s${slot}_a${attempt}_${short}`, description, label, params};
 }
 
-/** N candidate looks for one slot, so a Choice question has something real to pick between
- *  (`docs/COMPOSER.md` §1 — code enumerates, the model picks an id). */
-export function sampleSlotCandidates(gid:string, slot:number, attempt:number, seed:number,
-                                     n:number, rosters:Rosters):ShadingLook[] {
-  const out:ShadingLook[] = [];
-  for (let i = 0; i < n; i++) out.push(sampleBankLook(gid, slot, attempt * 1000 + i, seed, rosters));
-  return out;
-}
-
-/* ── diversity, measured in code (never by re-asking the model) ─────────────────────── */
+/* ── spread, measured/guaranteed IN CODE (operator ruling 2026-09-20 13:57, verbatim:
+ *  "this is EXACTLY to expose as many DIFFERENT looks as possible so I do not have to
+ *  discover them all"): every menu row's every option must appear across a bank's 11 slots
+ *  where 11 slots allow it, and the ranged/continuous knobs must spread farthest-point
+ *  rather than merely clear a distance FLOOR. This supersedes the earlier "ask Laya 3
+ *  candidates, keep the diverse ones, force-accept past a retry cap" design entirely — the
+ *  content of a bank's 11 slots is now a CODE-ONLY construction with no network call, and
+ *  the model's role narrows to which of these code-guaranteed-diverse slots best fits a
+ *  given look's TARGET (`shading-requests.ts buildChildPickRequest`). ───────────────────── */
 
 function normalizedValue(input:ShadingInput, v:JsonValue):number {
   if (typeof v === 'boolean') return v ? 1 : 0;
@@ -187,15 +186,186 @@ export function bankDistance(gid:string, a:Record<string,JsonValue>, b:Record<st
   return sum / knobs.length;
 }
 
-/** The minimum acceptable distance between any two chosen slots in the SAME bank — a slot
- *  that lands below this against every prior slot is redrawn (fresh candidate pool, bumped
- *  attempt), never re-asked over the same pool. */
-export const MIN_SLOT_DISTANCE = 0.06;
+/** Every MENU ROW (bool or enum `_menuOnly` knob) a bank offers — read off the live roster,
+ *  never assumed (operator, 2026-09-20 13:58/13:59: "every light has multiple modes … do
+ *  not assume one"). A bool row's option set is `[false, true]`; an enum row's is its own
+ *  `VALUES` verbatim. These are the rows a stratified selection is obligated to COVER. */
+export interface MenuRow { name:string; label:string; options:JsonValue[] }
+export function menuRows(gid:string, rosters:Rosters):MenuRow[] {
+  return bankKnobs(gid, rosters)
+    .filter(k => k._menuOnly === true)
+    .map(k => ({
+      name:k.NAME, label:k.LABEL,
+      options: (Array.isArray(k.VALUES) && k.VALUES.length ? k.VALUES.slice() : [false, true]) as JsonValue[]
+    }));
+}
 
-export function diverseEnough(gid:string, candidate:Record<string,JsonValue>,
-                              accepted:Record<string,JsonValue>[], rosters:Rosters):boolean {
-  if (!accepted.length) return true;
-  return accepted.every(p => bankDistance(gid, candidate, p, rosters) >= MIN_SLOT_DISTANCE);
+export interface CoverageRow { name:string; label:string; total:number; used:number;
+  coverable:boolean; missing:JsonValue[] }
+export interface StratifiedBank {
+  looks:ShadingLook[];
+  coverage:CoverageRow[];
+  minPairwiseDistance:number;
+  /** slot index (1-based) → the earlier slot index it duplicates, only when the bank's own
+   *  state space is smaller than `slots` (sub:lighting's 3 bools ⇒ 8 states < 11 — "take all
+   *  8 and report 3 slots as duplicates by necessity rather than padding", operator ruling). */
+   duplicates:{slot:number; duplicateOfSlot:number}[];
+}
+
+/** Fill a bank's `slots` (default 11) with CODE-ONLY content: over-sample a candidate pool,
+ *  greedily cover every menu row's every option first (tie-broken by farthest-point distance
+ *  from what's already chosen), then keep filling by pure farthest-point distance, and only
+ *  pad with an exact duplicate of an already-chosen slot when the bank's own state space is
+ *  smaller than `slots` (never a forced-accept floor — the whole point is to STOP discovering
+ *  duplicates by construction, not to tolerate near-duplicates past a threshold). Zero network
+ *  calls — deterministic in (gid, seed), so a vitest test can assert coverage directly. */
+export function stratifiedBankSlots(gid:string, rosters:Rosters, seed:number,
+                                    slots = 11, oversample = 500):StratifiedBank {
+  const rows = menuRows(gid, rosters);
+  const pool:ShadingLook[] = [];
+  for (let i = 0; i < oversample; i++) pool.push(sampleBankLook(gid, 0, i, seed, rosters));
+
+  const sigOf = (look:ShadingLook) => hashJSON({params:look.params});
+  const rowKey = (name:string, v:JsonValue) => `${name}=${JSON.stringify(v)}`;
+  const uncovered = new Set<string>();
+  for (const r of rows) for (const opt of r.options) uncovered.add(rowKey(r.name, opt));
+
+  const selected:ShadingLook[] = [];
+  const selectedSig = new Set<string>();
+  const minDistTo = (cand:ShadingLook) => selected.length
+    ? Math.min(...selected.map(s => bankDistance(gid, cand.params, s.params, rosters))) : Infinity;
+  const coverGain = (cand:ShadingLook) => {
+    let n = 0;
+    for (const r of rows) if (uncovered.has(rowKey(r.name, cand.params[r.name]))) n++;
+    return n;
+  };
+
+  // Phase 1 — coverage-greedy: pick the candidate that closes the most still-open (row,
+  // option) pairs; ties broken by farthest distance from what's already selected.
+  while (selected.length < slots && uncovered.size > 0) {
+    let best:ShadingLook|null = null, bestGain = -1, bestDist = -1;
+    for (const cand of pool) {
+      if (selectedSig.has(sigOf(cand))) continue;
+      const gain = coverGain(cand);
+      if (gain <= 0) continue;
+      const dist = minDistTo(cand);
+      if (gain > bestGain || (gain === bestGain && dist > bestDist)) { best = cand; bestGain = gain; bestDist = dist; }
+    }
+    if (!best) break; // no remaining unique candidate covers anything left — reported below
+    selected.push(best); selectedSig.add(sigOf(best));
+    for (const r of rows) uncovered.delete(rowKey(r.name, best.params[r.name]));
+  }
+
+  // Phase 2 — pure farthest-point fill from remaining UNIQUE candidates.
+  while (selected.length < slots) {
+    let best:ShadingLook|null = null, bestDist = -1;
+    for (const cand of pool) {
+      if (selectedSig.has(sigOf(cand))) continue;
+      const dist = minDistTo(cand);
+      if (dist > bestDist) { best = cand; bestDist = dist; }
+    }
+    if (!best) break; // the bank's own state space is smaller than `slots` — pad below
+    selected.push(best); selectedSig.add(sigOf(best));
+  }
+
+  // Phase 3 — the ONLY place a duplicate is introduced, and it is REPORTED, never silent.
+  const duplicates:{slot:number; duplicateOfSlot:number}[] = [];
+  let cursor = 0;
+  while (selected.length < slots) {
+    const srcIdx = selected.length ? (cursor % selected.length) : 0;
+    duplicates.push({slot: selected.length + 1, duplicateOfSlot: srcIdx + 1});
+    selected.push(selected[srcIdx] ?? pool[0]);
+    cursor++;
+  }
+
+  const coverage:CoverageRow[] = rows.map(r => {
+    const used = new Set(selected.map(s => s.params[r.name]));
+    const missing = r.options.filter(o => !used.has(o));
+    return {name:r.name, label:r.label, total:r.options.length, coverable:r.options.length <= slots,
+      used: r.options.length - missing.length, missing};
+  });
+  let minPD = 1;
+  if (selected.length > 1) {
+    let m = Infinity;
+    for (let i = 0; i < selected.length; i++) for (let j = i+1; j < selected.length; j++)
+      m = Math.min(m, bankDistance(gid, selected[i].params, selected[j].params, rosters));
+    minPD = m;
+  }
+  return {looks:selected, coverage, minPairwiseDistance:minPD, duplicates};
+}
+
+/* ── the partition: EVERY child slot used in EXACTLY ONE surface look (operator ruling
+ *  2026-09-20 13:56: "the whole point of this exercise is to NOT have duplicate looks" —
+ *  a child bank's 11 slots must map bijectively onto the 11 surface looks, never the same
+ *  slot diagonally repeated across every look). The menu offered for look k is the slots
+ *  NOT YET USED by looks 1..k-1; a menu of exactly one remaining slot is FORCED, never
+ *  asked (`docs/COMPOSER.md` "a single-option menu is not a decision"). Pure, synchronous,
+ *  no network — the compose script drives it with a live Choice call per look, and
+ *  `tests/shading-partition.test.ts` drives it with a deterministic stub to prove the
+ *  invariant without one. ─────────────────────────────────────────────────────────────── */
+export interface ChildPartitionState { used:Record<string, Set<number>> }
+export function newPartitionState(children:string[]):ChildPartitionState {
+  return {used: Object.fromEntries(children.map(c => [c, new Set<number>()]))};
+}
+export function availableSlots(state:ChildPartitionState, gid:string, allSlots:number[]):number[] {
+  const used = state.used[gid] ?? new Set<number>();
+  return allSlots.filter(s => !used.has(s)).sort((a,b) => a - b);
+}
+export function forcedSlot(available:number[]):number|null {
+  return available.length === 1 ? available[0] : null;
+}
+export function commitPick(state:ChildPartitionState, gid:string, slot:number, available:number[]):void {
+  if (!available.includes(slot))
+    throw new Error(`commitPick: slot ${slot} was not in the offered menu for "${gid}" (${available.join(',')})`);
+  (state.used[gid] ??= new Set<number>()).add(slot);
+}
+
+/* ── constraints — read, never transcribed (operator ruling 2026-09-20 14:00). A separate
+ *  lane derives incompatible/inert (material, lighting) combinations from the shader and
+ *  exports `shared.shading.constraints`; this file only excludes an offer that would
+ *  COMPLETE a banned set, given what a look has already committed to. ─────────────────── */
+export interface ConstraintEntry {
+  rows:{group:string; row:string; option:unknown}[];
+  verdict:'incompatible'|'inert';
+  darkGroups?:string[];
+}
+
+export function violatesConstraint(
+  constraints:ConstraintEntry[],
+  chosenSoFar:{gid:string; params:Record<string,JsonValue>}[],
+  candidateGid:string, candidateParams:Record<string,JsonValue>
+):boolean {
+  for (const c of constraints) {
+    let allMatch = true;
+    for (const r of c.rows) {
+      const own = r.group === candidateGid ? candidateParams
+        : chosenSoFar.find(x => x.gid === r.group)?.params;
+      if (!own || JSON.stringify(own[r.row]) !== JSON.stringify(r.option)) { allMatch = false; break; }
+    }
+    // only a live constraint if the candidate itself is party to it — a rule about two
+    // OTHER groups that happen to already match is not this candidate's to enforce.
+    if (allMatch && c.rows.some(r => r.group === candidateGid)) return true;
+  }
+  return false;
+}
+
+/** A group with NO LIVE ROW AT ALL under what has already been chosen this look (an entry's
+ *  `darkGroups`, e.g. `materialType=matcap` darkens `sub:light2`/`sub:light3` entirely). Every
+ *  slot of a darkened group is EQUALLY inert — there is nothing to prefer among them, so the
+ *  caller skips asking Laya (a dead look is never offered) and force-picks, rather than
+ *  filtering a menu down to a "best" option that does not meaningfully exist. */
+export function isDarkened(constraints:ConstraintEntry[],
+                           chosenSoFar:{gid:string; params:Record<string,JsonValue>}[],
+                           candidateGid:string):boolean {
+  for (const c of constraints) {
+    if (!c.darkGroups || !c.darkGroups.includes(candidateGid)) continue;
+    const allMatch = c.rows.every(r => {
+      const own = chosenSoFar.find(x => x.gid === r.group)?.params;
+      return own && JSON.stringify(own[r.row]) === JSON.stringify(r.option);
+    });
+    if (allMatch) return true;
+  }
+  return false;
 }
 
 /* ── DISTINCT AXIS COORDINATES for the eleven `surface` looks (audit item 1) ────────────

@@ -1,23 +1,33 @@
 /** THE I5.5 RUN — one composed look set for the SHARED SHADING ACCORDION, asked of the
  *  LOCAL decision model (`docs/PLAN.md` §1.0b, `specs/ai/decision-models.md` §P2.10).
  *
- *  For each of the ten SHADING children: sample N candidate looks per slot (1..11), bundle
- *  them into ≤6-question Choice requests, ask the configured provider (default `local` —
- *  Laya via `von serve` on loopback), and accept the model's pick. Diversity across a bank's
- *  11 slots is enforced IN CODE (a redraw + re-ask on a fresh pool), never by re-asking the
- *  model over the SAME pool.
+ *  THE PURPOSE (operator, 2026-09-20 13:57, verbatim): "this is EXACTLY to expose as many
+ *  DIFFERENT looks as possible so I do not have to discover them all." Three mechanisms
+ *  serve it, in order of what they guarantee:
  *
- *  `surface`'s eleven looks are COMPOSED, not diagonally copied (audit fix, 2026-09-20): each
- *  of the 11 looks targets a DISTINCT axis coordinate across the four shading axes
- *  (contrast/warmth/density/depth — `spreadShadingCoordinates`), and for each look, EVERY
- *  child bank gets its OWN Choice — "which of this bank's eleven already-built slots best
- *  fits this target" — so `childSlots` is eleven real per-child decisions, never the same
- *  slot index copied down every bank. A vector that duplicates an already-accepted one is
- *  rejected in code and re-asked against the next unused coordinate (never silently kept).
+ *   1. SPREAD, inside each bank's own 11 slots — CODE-ONLY, no network. `stratifiedBankSlots`
+ *      over-samples a candidate pool and greedily covers every menu row's every option
+ *      (where 11 slots allow it), then fills any remainder by farthest-point distance. A
+ *      bank whose own state space is smaller than 11 (`sub:lighting`'s 3 bools ⇒ 8 states)
+ *      takes every distinct state and PADS with reported duplicates — never a forced-accept
+ *      floor pretending 8 states are 11 different ones.
+ *   2. PARTITION, across the 11 surface looks — each child bank's 11 slots map BIJECTIVELY
+ *      onto the 11 looks: the menu offered for look k is the slots NOT YET used by looks
+ *      1..k-1 (`shading-samplers.ts` `availableSlots`/`forcedSlot`/`commitPick`). A menu of
+ *      one remaining slot is FORCED, never asked. This replaced an earlier `vectorSignature`
+ *      distinctness-by-retry design that could (and did) still let a bank repeat a slot
+ *      across looks — the partition makes repetition structurally impossible instead.
+ *   3. COHERENCE — a light rig that varies how many lights are on (not mostly-all-on), lit
+ *      lights that differ in TYPE from each other within one look, and (once the constraints
+ *      lane lands) no offer that would complete a shader-incompatible material↔lighting
+ *      combination. Laya's role is exactly this: given 1 and 2 already guarantee spread and
+ *      non-repetition, which of the remaining code-valid slots best fits ONE look's target
+ *      coordinate, in the CONSTRAINING order (lighting rig → material → the three lights →
+ *      everything else).
  *
  *    node --run compose:shading           (writes data/shading-compose-<ts>.json)
  *
- *  Options: --candidates <n=3>  --seed <n>  --provider local|fixture|jev  --out <dir>
+ *  Options: --seed <n>  --provider local|fixture|jev  --out <dir>  --oversample <n=500>
  */
 import {mkdirSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
@@ -25,21 +35,19 @@ import {loadConfig, effectiveProvider, effectiveKey} from '../server/config.js';
 import {providerFor} from '../server/provider.js';
 import {loadRosters} from '../core/rosters.js';
 import {shadingBankIds, shadingChildren, bankKnobs, bankExclusions, shadingGroup} from '../core/shading.js';
-import {sampleSlotCandidates, bankDistance, diverseEnough, cleanLabel,
-  spreadShadingCoordinates, coordinateLabel, coordinateLine} from '../core/shading-samplers.js';
-import {buildShadingRequest, slotQuestionId, chunkSlots,
-  buildChildPickRequest, childPickQuestionId} from '../core/shading-requests.js';
+import {stratifiedBankSlots, cleanLabel, spreadShadingCoordinates, coordinateLabel, coordinateLine,
+  newPartitionState, availableSlots, forcedSlot, commitPick, violatesConstraint, isDarkened} from '../core/shading-samplers.js';
+import {buildChildPickRequest, childPickQuestionId} from '../core/shading-requests.js';
 import {validateResponse} from '../core/validate.js';
 import {selectChoice} from '../core/selection.js';
 import {hashJSON} from '../core/hash.js';
 
 const argv = process.argv.slice(2);
 const arg = (n,d) => { const i = argv.indexOf('--'+n); return i>=0 ? argv[i+1] : d; };
-const N_CANDIDATES = parseInt(arg('candidates','3'),10);
 const SLOTS = 11;
+const ALL_SLOTS = Array.from({length:SLOTS}, (_,i) => i+1);
 const SEED = parseInt(arg('seed','7331'),10) >>> 0;
-const MAX_RETRY = 2;
-const MAX_VECTOR_RETRIES = 8; // total collisions this run will resolve before refusing loudly
+const OVERSAMPLE = parseInt(arg('oversample','500'),10);
 
 const cfg = loadConfig();
 const providerId = arg('provider', null) ?? effectiveProvider(cfg);
@@ -53,11 +61,30 @@ const children = shadingChildren(rosters);
 if (!allBanks.includes('surface')) throw new Error('the roster carries no "surface" bank — the shading tree moved');
 if (children.length !== 10) throw new Error(`expected 10 shading children, roster carries ${children.length}: ${children.join(',')}`);
 
+// `shared.shading.constraints` is an OBJECT (`method`/`axes`/`baseDrivers`/`entries`/
+// `glslNotes`/`combinations`) — `entries` is the per-combination verdict list this repo
+// filters offers against; everything else is the derivation's own bookkeeping, read but
+// not interpreted here (2026-09-20, read verbatim off the live bundle — never transcribed).
+const constraints = Array.isArray(rosters.shading.constraints?.entries) ? rosters.shading.constraints.entries : [];
+const constraintsPresent = constraints.length > 0;
+const constraintsMeta = constraintsPresent ? {
+  method: rosters.shading.constraints.method, combinations: rosters.shading.constraints.combinations
+} : null;
+
+// THE CONSTRAINING-FIRST ORDER (operator, 2026-09-20 14:00): the light rig (sub:lighting)
+// and the material bank are asked before the three individually-typed lights, which are
+// asked before everything else. Any child not named here follows in the roster's own order.
+const PRIORITY_ORDER = ['sub:lighting', 'sub:material', 'sub:light1', 'sub:light2', 'sub:light3'];
+const askOrder = [...PRIORITY_ORDER.filter(g => children.includes(g)),
+  ...children.filter(g => !PRIORITY_ORDER.includes(g))];
+
 let callCount = 0;
 const receipts = [];
 const banksOut = {};
-const childLooks = {}; // gid -> {slot -> ShadingLook}, kept for the child-pick criteria
-const report = [];
+const childLooks = {};     // gid -> {slot(string) -> ShadingLook}
+const bankReport = [];     // per-bank stratification evidence
+const notAskedLog = [];
+const constraintRemovals = []; // {surfaceSlot, bank, removedSlots:[...]}
 
 async function decide(request) {
   callCount++;
@@ -67,198 +94,199 @@ async function decide(request) {
   return {answers, receipt};
 }
 
-function recordReceipt(gid, slot, qid, request, candidates, ans, sel, receipt) {
+function recordReceipt(bank, surfaceSlot, qid, request, options, ans, sel, receipt) {
   receipts.push({
     schemaVersion:'a8os.jev.shading-receipt.v1',
-    bank:gid, slot, questionId:qid,
+    bank, slot:`surface:${surfaceSlot}`, questionId:qid,
     providerId:provider.id, providerClass:provider.providerClass, model:receipt.response.model,
-    requestHash:hashJSON(request), candidateHash:hashJSON(candidates),
-    providerChoice: ans.type==='choice' ? ans.choice : null,
-    selectedChoice: sel.selected, confidence: ans.confidence,
-    usage: receipt.response.usage, latencyMs: receipt.latencyMs,
-    provenance: provider.provenance
+    requestHash:hashJSON(request), candidateHash:hashJSON(options),
+    providerChoice: ans.choice, selectedChoice: sel.selected, confidence: ans.confidence,
+    usage: receipt.response.usage, latencyMs: receipt.latencyMs, provenance: provider.provenance
   });
 }
 
-/** Ask for every slot of one bank, in ≤6-question batches. Returns slot -> chosen look. */
-async function askBank(gid, label) {
-  const pending = [];
-  for (let slot = 1; slot <= SLOTS; slot++)
-    pending.push({slot, candidates: sampleSlotCandidates(gid, slot, 0, SEED, N_CANDIDATES, rosters)});
-  const chosen = {};
-  for (const batch of chunkSlots(pending)) {
-    const request = buildShadingRequest(model, gid, label, batch);
-    if (!Object.keys(request.questions).length) continue;
-    const {answers, receipt} = await decide(request);
-    for (const {slot, candidates} of batch) {
-      const qid = slotQuestionId(gid, slot);
-      const ans = answers[qid];
-      if (!ans) continue;
-      const sel = selectChoice(ans, {mode:'model'});
-      const look = candidates.find(c => c.id === sel.selected);
-      chosen[slot] = look;
-      recordReceipt(gid, slot, qid, request, candidates, ans, sel, receipt);
-    }
-  }
-  return chosen;
-}
-
-/** Diversity pass: redraw+re-ask a slot that lands too close to an already-accepted slot
- *  in the SAME bank, up to MAX_RETRY, then accept regardless (noted in the report). */
-async function diversify(gid, label, chosen) {
-  const slots = Object.keys(chosen).map(Number).sort((a,b) => a - b);
-  const acceptedParams = [];
-  const final = {};
-  let forcedAccepts = 0;
-  for (const slot of slots) {
-    let look = chosen[slot];
-    let attempt = 0;
-    while (!diverseEnough(gid, look.params, acceptedParams, rosters) && attempt < MAX_RETRY) {
-      attempt++;
-      const candidates = sampleSlotCandidates(gid, slot, attempt, SEED, N_CANDIDATES, rosters);
-      const request = buildShadingRequest(model, gid, label, [{slot, candidates}]);
-      const {answers, receipt} = await decide(request);
-      const qid = slotQuestionId(gid, slot);
-      const ans = answers[qid];
-      const sel = selectChoice(ans, {mode:'model'});
-      look = candidates.find(c => c.id === sel.selected);
-      recordReceipt(gid, slot, qid, request, candidates, ans, sel, receipt);
-    }
-    if (!diverseEnough(gid, look.params, acceptedParams, rosters)) forcedAccepts++;
-    acceptedParams.push(look.params);
-    final[slot] = look;
-  }
-  const minPair = acceptedParams.length > 1
-    ? Math.min(...acceptedParams.flatMap((p,i) => acceptedParams.slice(i+1).map(q => bankDistance(gid,p,q,rosters))))
-    : 1;
-  return {final, minPairDistance: minPair, forcedAccepts};
-}
-
-async function fillOrdinaryBank(gid) {
+/* ── Phase 1: stratify every child bank's own 11 slots — code only, zero network. ──── */
+for (const gid of children) {
   const g = shadingGroup(gid, rosters);
   const knobs = bankKnobs(gid, rosters);
   if (!knobs.length) {
     banksOut[gid] = {presets:{}};
     childLooks[gid] = {};
-    report.push({bank:gid, label:g.label, knobs:0, slots:0, minPairDistance:null, forcedAccepts:0});
-    return;
+    bankReport.push({bank:gid, label:g.label, knobs:0, coverage:[], minPairwiseDistance:null, duplicates:[]});
+    continue;
   }
-  const chosen = await askBank(gid, g.label);
-  const {final, minPairDistance, forcedAccepts} = await diversify(gid, g.label, chosen);
-  childLooks[gid] = final;
-  banksOut[gid] = {presets: Object.fromEntries(Object.entries(final).map(([slot, look]) => [
-    slot, {name: cleanLabel(look.label), values: {params: look.params, bindings:{receivers:[],senders:[]}}}
+  const {looks, coverage, minPairwiseDistance, duplicates} =
+    stratifiedBankSlots(gid, rosters, SEED, SLOTS, OVERSAMPLE);
+  childLooks[gid] = Object.fromEntries(looks.map((l, i) => [String(i+1), l]));
+  banksOut[gid] = {presets: Object.fromEntries(looks.map((l, i) => [
+    String(i+1), {name: cleanLabel(l.label), values:{params:l.params, bindings:{receivers:[],senders:[]}}}
   ]))};
-  report.push({bank:gid, label:g.label, knobs:knobs.length, slots:Object.keys(final).length,
-    minPairDistance, forcedAccepts, exclusions: bankExclusions(gid, rosters).length});
+  bankReport.push({bank:gid, label:g.label, knobs:knobs.length, coverage, minPairwiseDistance, duplicates,
+    exclusions: bankExclusions(gid, rosters).length});
 }
 
-/** ONE surface look's childSlots vector: a real per-child Choice against a distinct target
- *  coordinate, bundled ≤6 questions/request (10 children → 2 requests per look). */
-async function pickChildSlotsFor(surfaceSlot, coordinate) {
-  const banks = children.map(cgid => ({
-    gid:cgid, label:shadingGroup(cgid, rosters).label,
-    slots:Object.entries(childLooks[cgid]).map(([slot, look]) => ({slot:Number(slot), look}))
-  })).filter(b => b.slots.length >= 2);
-  const vector = {};
-  for (const batch of chunkSlots(banks)) {
-    const request = buildChildPickRequest(model, coordinate, batch);
-    if (!Object.keys(request.questions).length) continue;
+/* ── Phase 1b: surface's OWN ~12 knobs — also stratified, one set per look directly (no
+ *  partition needed: these are not reused across looks the way a child slot is). ────── */
+const surfaceGroup = shadingGroup('surface', rosters);
+const surfaceOwnKnobs = bankKnobs('surface', rosters);
+const surfaceOwn = stratifiedBankSlots('surface', rosters, SEED, SLOTS, OVERSAMPLE);
+bankReport.push({bank:'surface', label:surfaceGroup.label, knobs:surfaceOwnKnobs.length,
+  coverage:surfaceOwn.coverage, minPairwiseDistance:surfaceOwn.minPairwiseDistance,
+  duplicates:surfaceOwn.duplicates, exclusions: bankExclusions('surface', rosters).length});
+
+/* ── HARD GATE (operator, 2026-09-20 13:59): refuse to deliver if any COVERABLE menu row
+ *  (option count ≤ 11) is missing an option anywhere in the delivered set. The same check
+ *  runs as a pure test (`tests/shading-coverage.test.ts`) with no network involved. ───── */
+function assertFullCoverage(report) {
+  const bad = [];
+  for (const r of report) for (const c of r.coverage)
+    if (c.coverable && c.missing.length) bad.push(`${r.bank}.${c.name}: missing ${JSON.stringify(c.missing)} of ${c.total}`);
+  if (bad.length) throw new Error('coverage gate failed — refusing to deliver:\n  ' + bad.join('\n  '));
+}
+assertFullCoverage(bankReport);
+
+/* ── Phase 2: the 11 surface looks — distinct coordinates, per-child partitioned picks,
+ *  constraining-first order, light-rig variety + type-uniqueness, constraint filtering. ── */
+const coords = spreadShadingCoordinates(SLOTS, SEED);
+const state = newPartitionState(children);
+const presets = {};
+const surfaceLightSummary = [];
+
+function bankLabelOf(gid) { return shadingGroup(gid, rosters).label; }
+
+/** ONE child pick for ONE look — forced when the menu is a singleton, constraint-filtered
+ *  otherwise (falling back to the unfiltered menu if filtering would empty it — a filter
+ *  that deadlocks the run is a worse failure than an unfiltered offer), and further
+ *  light-type-filtered via `extraExclude`. */
+async function pickOneChild(surfaceSlot, coordinate, gid, chosenSoFar, extraExclude) {
+  const avail = availableSlots(state, gid, ALL_SLOTS);
+  if (!avail.length) throw new Error(`surface slot ${surfaceSlot}: bank "${gid}" has no slots left`);
+
+  // A group with NO LIVE ROW at all under what's already chosen (e.g. materialType=matcap
+  // darkens sub:light2/sub:light3 entirely, `darkGroups`) — every remaining slot is equally
+  // inert, so skip Laya and force-pick rather than offer a dead choice.
+  if (constraintsPresent && isDarkened(constraints,
+      chosenSoFar.map(c => ({gid:c.gid, params:c.look.params})), gid)) {
+    const chosenSlot = avail[0];
+    notAskedLog.push({surfaceSlot, bank:gid, slot:chosenSlot,
+      reason:'group darkened (no live row) by an already-chosen material/lighting option'});
+    commitPick(state, gid, chosenSlot, avail);
+    return chosenSlot;
+  }
+
+  let menu = avail;
+  if (constraintsPresent) {
+    const filtered = menu.filter(s => !violatesConstraint(constraints,
+      chosenSoFar.map(c => ({gid:c.gid, params:c.look.params})), gid, childLooks[gid][String(s)].params));
+    if (filtered.length) {
+      if (filtered.length < menu.length) constraintRemovals.push({surfaceSlot, bank:gid,
+        removedSlots: menu.filter(s => !filtered.includes(s))});
+      menu = filtered;
+    }
+  }
+  if (extraExclude) {
+    const filtered = menu.filter(s => !extraExclude(childLooks[gid][String(s)].params));
+    if (filtered.length) menu = filtered;
+  }
+  let chosenSlot;
+  if (menu.length <= 1) {
+    chosenSlot = menu[0] ?? avail[0];
+    notAskedLog.push({surfaceSlot, bank:gid, slot:chosenSlot, reason: avail.length === 1
+      ? 'only one unused slot remained' : 'constraint/type filtering left exactly one option'});
+  } else {
+    const options = menu.map(s => ({slot:s, look:childLooks[gid][String(s)]}));
+    const request = buildChildPickRequest(model, coordinate,
+      [{gid, label:bankLabelOf(gid), slots:options}],
+      chosenSoFar.map(c => ({gid:c.gid, label:bankLabelOf(c.gid), description:c.look.description})));
     const {answers, receipt} = await decide(request);
-    for (const {gid} of batch) {
-      const qid = childPickQuestionId(gid);
-      const ans = answers[qid];
-      if (!ans) continue;
-      const sel = selectChoice(ans, {mode:'model'});
-      vector[gid] = sel.selected; // the choice key IS the slot number (buildChildPickRequest)
-      receipts.push({
-        schemaVersion:'a8os.jev.shading-receipt.v1',
-        bank:gid, slot:`surface:${surfaceSlot}`, questionId:qid,
-        providerId:provider.id, providerClass:provider.providerClass, model:receipt.response.model,
-        requestHash:hashJSON(request), candidateHash:hashJSON(batch.find(b=>b.gid===gid).slots),
-        providerChoice: ans.choice, selectedChoice: sel.selected, confidence: ans.confidence,
-        usage: receipt.response.usage, latencyMs: receipt.latencyMs, provenance: provider.provenance
-      });
-    }
+    const qid = childPickQuestionId(gid);
+    const ans = answers[qid];
+    const sel = selectChoice(ans, {mode:'model'});
+    chosenSlot = Number(sel.selected);
+    recordReceipt(gid, surfaceSlot, qid, request, options, ans, sel, receipt);
   }
-  // Any child bank with < 2 slots (should not happen at 11 slots each, but never silently
-  // drop a childSlots entry) still needs an entry — falls back to its only/first slot.
-  for (const cgid of children) if (!(cgid in vector)) {
-    const only = Object.keys(childLooks[cgid])[0];
-    if (only) vector[cgid] = only;
-  }
-  return vector;
+  commitPick(state, gid, chosenSlot, avail);
+  return chosenSlot;
 }
 
-const vectorSignature = (v) => children.map(c => `${c}=${v[c]}`).join('|');
+for (let slotIdx = 1; slotIdx <= SLOTS; slotIdx++) {
+  const coordinate = coords[slotIdx - 1];
+  // Surface's own knobs for THIS look (already stratified, no partition/pick) seed
+  // `chosenSoFar` first — a constraint row naming group:'surface' (e.g. `lightingEnable`)
+  // must resolve against what this look already carries, not just the child picks.
+  const chosenSoFar = [{gid:'surface', look:surfaceOwn.looks[slotIdx-1]}];
+  const vector = {};
+  const lightTypeByN = {}; // {1:type,2:type,3:type} for lights ON in this look
 
-async function fillSurfaceBank() {
-  const gid = 'surface';
-  const g = shadingGroup(gid, rosters);
-  const knobs = bankKnobs(gid, rosters);
-  // The surface's OWN 12-ish knobs still ride the same candidate-pool decision every other
-  // bank does — this part of the audit's fix (item 1) is about childSlots, not this half.
-  const chosen = await askBank(gid, g.label);
-  const {final: ownFinal, minPairDistance, forcedAccepts} = await diversify(gid, g.label, chosen);
+  for (const gid of askOrder) {
+    let extraExclude = null;
 
-  const coords = spreadShadingCoordinates(SLOTS + MAX_VECTOR_RETRIES, SEED);
-  const usedSignatures = [];
-  const presets = {};
-  let retriesSpent = 0;
-  let coordCursor = SLOTS; // index of the next unused RESERVE coordinate
-
-  for (let slot = 1; slot <= SLOTS; slot++) {
-    let coordinate = coords[slot - 1];
-    let vector = await pickChildSlotsFor(slot, coordinate);
-    while (usedSignatures.includes(vectorSignature(vector))) {
-      if (retriesSpent >= MAX_VECTOR_RETRIES || coordCursor >= coords.length)
-        throw new Error(`surface slot ${slot}: childSlots vector collided with an earlier slot ` +
-          `and the ${MAX_VECTOR_RETRIES}-retry reserve is exhausted — refusing to ship a ` +
-          `duplicate childSlots vector rather than hide it`);
-      retriesSpent++;
-      coordinate = coords[coordCursor++];
-      vector = await pickChildSlotsFor(slot, coordinate);
+    if (gid === 'sub:light1' || gid === 'sub:light2' || gid === 'sub:light3') {
+      const n = Number(gid.slice(-1));
+      const lightingLook = chosenSoFar.find(c => c.gid === 'sub:lighting')?.look;
+      const enabled = lightingLook ? !!lightingLook.params[`light${n}Enabled`] : true;
+      if (enabled) {
+        const usedTypes = Object.values(lightTypeByN);
+        if (usedTypes.length)
+          extraExclude = (params) => usedTypes.includes(params[`light${n}Type`]);
+      }
     }
-    usedSignatures.push(vectorSignature(vector));
 
-    const params = {...ownFinal[slot].params};
-    const childSlots = {};
-    for (const cgid of children) {
-      const chosenSlot = vector[cgid];
-      const childPreset = banksOut[cgid]?.presets?.[chosenSlot];
-      if (!childPreset) continue;
-      Object.assign(params, childPreset.values.params);
-      childSlots[cgid] = chosenSlot;
+    const slot = await pickOneChild(slotIdx, coordinate, gid, chosenSoFar, extraExclude);
+    const look = childLooks[gid][String(slot)];
+    chosenSoFar.push({gid, look});
+    vector[gid] = String(slot);
+
+    if (gid === 'sub:light1' || gid === 'sub:light2' || gid === 'sub:light3') {
+      const n = Number(gid.slice(-1));
+      const lightingLook = chosenSoFar.find(c => c.gid === 'sub:lighting')?.look;
+      const enabled = lightingLook ? !!lightingLook.params[`light${n}Enabled`] : true;
+      if (enabled) lightTypeByN[n] = look.params[`light${n}Type`];
     }
-    presets[slot] = {
-      name: coordinateLabel(coordinate),
-      values:{params, bindings:{receivers:[],senders:[]}, childSlots},
-      // carried in the compose ARTIFACT only (stripped by deliver-shading.mjs's target shape
-      // check — the app's own bank schema is {name,values}); kept here for the return brief.
-      _coordinate: coordinate, _coordinateLine: coordinateLine(coordinate)
-    };
   }
-  banksOut[gid] = {presets: Object.fromEntries(Object.entries(presets).map(([slot, p]) => [
-    slot, {name:p.name, values:p.values}
-  ]))};
-  report.push({bank:gid, label:g.label, knobs:knobs.length, slots:Object.keys(presets).length,
-    minPairDistance, forcedAccepts, exclusions: bankExclusions(gid, rosters).length,
-    coordinateRetries: retriesSpent});
-  return presets; // WITH _coordinate, for the console summary + artifact-level report
+
+  const params = {...surfaceOwn.looks[slotIdx-1].params};
+  for (const {gid, look} of chosenSoFar) Object.assign(params, look.params);
+  presets[slotIdx] = {
+    name: coordinateLabel(coordinate),
+    values:{params, bindings:{receivers:[],senders:[]}, childSlots:vector},
+    _coordinate: coordinate, _coordinateLine: coordinateLine(coordinate)
+  };
+
+  const lightingLook = chosenSoFar.find(c => c.gid === 'sub:lighting')?.look;
+  const lightsOn = [1,2,3].filter(n => lightingLook && lightingLook.params[`light${n}Enabled`]);
+  surfaceLightSummary.push({
+    slot:slotIdx, lightsOnCount: lightsOn.length,
+    lights: lightsOn.map(n => ({n, type: lightTypeByN[n], slot: vector[`sub:light${n}`]}))
+  });
 }
 
-const started = Date.now();
-for (const gid of children) await fillOrdinaryBank(gid);
-const surfacePresets = await fillSurfaceBank();
-const elapsedMs = Date.now() - started;
+// ── partition invariant: every child bank's used set is exactly {1..11} ─────────────
+const partitionCheck = children.map(gid => {
+  const used = [...state.used[gid]].sort((a,b) => a-b);
+  const ok = used.length === SLOTS && used.every((v,i) => v === i+1);
+  return {bank:gid, used, ok};
+});
+if (partitionCheck.some(p => !p.ok))
+  throw new Error('partition invariant violated: ' + JSON.stringify(partitionCheck.filter(p=>!p.ok)));
+
+banksOut.surface = {presets: Object.fromEntries(Object.entries(presets).map(([slot, p]) => [
+  slot, {name:p.name, values:p.values}
+]))};
 
 const outDir = arg('out', join(cfg.dataDir));
 mkdirSync(outDir, {recursive:true});
 const ts = new Date().toISOString().replace(/[:.]/g,'-');
 const outPath = join(outDir, `shading-compose-${ts}.json`);
 
-const surfaceSummary = Object.entries(surfacePresets).map(([slot, p]) => ({
-  slot, label:p.name, coordinate:p._coordinateLine, childSlots:p.values.childSlots
+const surfaceSummary = Object.entries(presets).map(([slot, p]) => ({
+  slot, label:p.name, coordinate:p._coordinateLine, childSlots:p.values.childSlots,
+  lighting: surfaceLightSummary.find(s => String(s.slot) === slot)
+}));
+
+// per-bank enum coverage table, flattened for the return brief
+const coverageTable = bankReport.map(r => ({
+  bank:r.bank, rows:r.coverage.map(c => ({row:c.name, used:c.used, total:c.total, coverable:c.coverable}))
 }));
 
 const artifact = {
@@ -266,9 +294,10 @@ const artifact = {
   provider:{id:provider.id, modelId:provider.modelId, providerClass:provider.providerClass},
   respondedModel: receipts[0]?.model ?? null,
   rosterProvenance: rosters.provenance,
-  candidatesPerSlot: N_CANDIDATES, seed: SEED,
-  calls: callCount, elapsedMs, receipts: receipts.length,
-  report,
+  seed: SEED, oversample: OVERSAMPLE,
+  constraintsPresent, constraintsCount: constraints.length, constraintRemovals,
+  calls: callCount, receipts: receipts.length,
+  bankReport, coverageTable, notAsked: notAskedLog, partitionCheck,
   surfaceSummary,
   banksUnitSha256: hashJSON(banksOut),
   banks: banksOut
@@ -279,9 +308,9 @@ writeFileSync(join(outDir, 'shading-compose-latest.json'), JSON.stringify(artifa
 console.log(JSON.stringify({
   run:'compose:shading', out:outPath,
   provider: artifact.provider, respondedModel: artifact.respondedModel,
-  calls: callCount, elapsedMs, receipts: receipts.length,
-  banks: report.map(r => ({bank:r.bank, slots:r.slots, minPairDistance:r.minPairDistance,
-    forcedAccepts:r.forcedAccepts, coordinateRetries:r.coordinateRetries})),
+  constraintsPresent, calls: callCount, receipts: receipts.length,
+  partitionOk: partitionCheck.every(p => p.ok),
+  coverageTable,
   surfaceSummary,
   banksUnitSha256: artifact.banksUnitSha256
 }, null, 2));
