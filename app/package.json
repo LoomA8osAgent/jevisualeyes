@@ -25,10 +25,7 @@
     "smoke:fixture": "tsx scripts/smoke-fixture.mjs",
     "compose:fixture": "tsx scripts/compose-fixture.mjs",
     "test:live": "tsx scripts/live-smoke.mjs",
-    "deliver:fixture": "tsx scripts/deliver-fixture.mjs",
-    "compose:shading": "tsx scripts/compose-shading.mjs",
-    "deliver:shading": "tsx scripts/deliver-shading.mjs",
-    "relabel:shading": "tsx scripts/relabel-shading.mjs"
+    "deliver:fixture": "tsx scripts/deliver-fixture.mjs"
   },
   "dependencies": {
     "tsx": "^4.20.3"
