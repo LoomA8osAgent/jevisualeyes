@@ -296,6 +296,15 @@ in **this** repo is what makes that receipt a typed input HERE:
   hand-copy of this repo's own `MOTION_FEELING` (`app/core/axes.ts`); `assertMotionKeys` in
   `look-verdict.ts` checks a transcribed list against this repo's live keys and throws named on
   drift — the check runnable from this side, since there is no import path from the other repo.
+- **The pixel layer (a vision model) is the sibling's third layer and is a recommendation
+  here, never a dependency.** The sibling measured Qwen2.5-VL 7B Instruct (Apache-2.0) under
+  llama.cpp on loopback: a neutral two-choice question (*Correct* / *Garbled*) over a contact
+  sheet separates torn from healthy at temperature 0, ~150–220 ms per verdict, ~6.6 GB
+  resident. Black and frozen are never asked of it — the arithmetic layer owns those. A user
+  who wants that eye beside this composer runs it themselves: `ollama pull qwen2.5vl` and
+  point at Ollama's OpenAI-compatible endpoint on `127.0.0.1:11434`. Nothing here reads a
+  vision answer yet; when it does, it arrives through the same receipt as the four answers
+  above, as text, and the same fail-closed reader.
 
 ## §6 The axes, and the vocabulary the user speaks
 
