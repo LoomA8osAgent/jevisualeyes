@@ -26,6 +26,7 @@ provider never change. "Preset composer" names the first increment, not the dest
 | **I3** | **Record descriptor → candidate looks. Code only, no model.** The per-stack samplers: seeded, N complete looks per stack from a coordinate, each with a stable id and one readable line. Reads the shared rosters and the record's own inputs; transcribes none of them (`docs/COMPOSER.md` §9). | ONE node check on ONE record: every sampled value inside its knob's `[MIN, MAX]`, ids stable across runs at the same seed, descriptions non-empty, and the skipped set an EXACT match for the descriptor's non-composable knobs — falsified once by handing the guard a bound-violating look and requiring it to throw. | **LANDED** (`12b59a4`); **roster reads EXTENDED** — the two named-literal reads I3 shipped as a reported finding are replaced by a read of the app's own exported bundle, which also brings the easing library into the movement menu (below) |
 | **I4** | **The smallest end-to-end composer over I3.** The phase machine swapped: given tag → sample → motion Nouls → a bounded accept/resample per stack → assemble one snapshot. Reduced **by choice**, to prove the whole loop with the fewest moving parts — nothing is blocked. | ONE record, ONE tag, fixture provider, end to end → a composed snapshot on disk with its receipts, and a re-run from the stored responses at the same seed producing a **byte-identical** snapshot. | **LANDED** — `npm run compose:fixture` + `tests/compose.test.ts`: subject resolved (never named) to `aizawa-attractor-tube` at `motion:pulse density:busy contrast:hard warmth:cold order:regular depth:deep`, seed 1743, 2 fixture calls (motion Nouls, then the 6-stack looks bundle) → 9 receipts, snapshot `7aff5d6a0408ad40…`, replayed from the stored responses through `ReplayProvider` to the same sha256; the accept check and the resample cap each falsified once |
 | **I5** | **Receipts → provenance, and write through the consuming app's own path.** `generation.provenance` on the snapshot, the coverage-sweep row for that new field in the same commit, one provenance-chain append, and the write going out as the app's own preset-bank POST, read back and asserted identical. | The user-path macro `jev.composed-preset-loads`: Library → click the record → card delivered → open its preset row → recall the composed slot → params, active op sets and binds all arrive and `generation.provenance` survives the round trip. Fixture provider; assert the EFFECT, settle on content identity. | **LANDED** — `jev.composed-preset-loads` GREEN on an isolated clone (:8471): the resolver picked `assay-knot-tube`, the composed slot was found in the card's own hydrated bank BY ITS PROVENANCE, a real click recalled it, and the card came back with 4/4 unbound declared inputs exact, 2/2 ops live (0 invented, 0 declined), the one bind live as an oscillator receiver with its bracket in `card.ranges`, and `generation.provenance` carrying 11 receipts + 1 chain entry — then re-saved through the `+` dialog into slot 2 at the same `unitSha256` |
+| **I5.5** | **THE SHARED SHADING STACK — one composed look set that shades every model.** Not per-formula presets: the accordion the card labels SHADING (group `surface`) and exactly the children the code nests under it (`_groupParent: 'surface'` — color · palette · texture · material · lighting → light 1/2/3 · structure · edge) are emitted by the SHARED template, identical on every record, so ONE composed set is shipped through the app's existing factory-bank surface (`a8_sdf_factory_banks`) and every model inherits it at compose time with no rebake and no per-record bank key. Blend modes, bindings, per-slider presets and the marching accordion are OUT, each by a mechanical exclusion. | The user-path macro `jev.shading-factory-looks`: Library → click a model → the SHADING accordion's bank shows the composed top-level slots → recall one → the child banks are populated and a child recall CHANGES THE RENDER (pixel/effect, not display) → the same slots are present on a SECOND, unrelated model. Fixture provider, light tier. | planned |
 | **I6** | **Axes + N-way + CALL 3 — the full pipeline** (`docs/COMPOSER.md` §7): the eight axis Choices (`shape`/`mathops`/`shade`/`layers`/`fx`/`modulation`/`material`/`lighting` — the last two added by the material/lighting stacks, one axis each, no new axis-table growth), the N-way per-stack look pick, the waveform Choice and the rate Score, with CALL 1's sub-questions chunked at ≤ 6 per request. | I5's macro again, run against the local provider with the full pipeline — plus a capability leg: pointed at a provider whose export caps the option slot, the run **reports a capability refusal naming the cap** and neither crashes nor degrades silently. | planned |
 | **I7** | **Bake the corpus** — 495 records × 4 tags: the run, its concurrency, its resume, its report. | The run completes and the report **names every skipped record and why**; a spot sample of composed slots loads through I5's macro. | planned, gated on the sentence lift (§2 risk 1) |
 | **I8** | **The brick composer** — the menu widens to *which node goes in this slot*, and the answer composes a **new record** rather than a preset for an existing one. The model still writes no GLSL: it picks a node id from a closed set and the emitter writes the shader, which is the only reason a composer of shaders is expressible in a decision model at all. Output is emitted as ISF2 (<https://github.com/LoomA8osAgent/ISF2>) and appends its per-node receipts through the standard's own provenance call. | One composed tree, fixture provider → the emitted output passes the standard's validation and a compile, the tree's JS evaluator agrees with the marched field at a sample of points, the knob-derivation tool mints its inputs, and the record loads through the ordinary Library path. Falsified once by composing a tree whose conservative Lipschitz bound is out of range and asserting the enumerator **never offered it**. | blocked on two things, §1.1 |
@@ -92,6 +93,233 @@ stating as status rather than leaving to be rediscovered:
   (§12) — the menus changed and so did the sampled shape.
 - **What is still open is the same finding, one value smaller:** the literal auditor's shared
   role table is still read by name out of app source, and would still be better exported.
+
+---
+
+### §1.0b I5.5 — THE SHARED SHADING STACK, composed once for every model
+
+> Operator, 2026-09-20: *"i do NOT want to do a full formula bake set yet, first i want to see how
+> it handles the default accordions that all formulas share, most importantly the shading stack -
+> untangling all of the lighting/material/palette/structure combinations, without blend modes; ie:
+> the top shader accordion needs a full set of presets, which has each of the children preset banks
+> full for each of the top level presets, which will work to shade all models with as many possible
+> combinations of looks with all of the children, and with no bindings as of yet, and leaving out
+> individual slider presets."* · *"needs to also take into account all of the enums in the accordion
+> menus!"* · *"no marching is necessary for shading!"*
+
+**Why this increment exists and why it comes before I7.** I7 bakes 495 records × 4 tags and is
+gated on the descriptor lift (§2 risk 1) and on the record→bank-key problem I5 measured. The
+shading stack has NEITHER blocker: it is emitted by the shared template rather than by a record,
+its 180 knobs already carry 180 situation sentences, and it ships through a factory surface that
+needs no source key at all. It is the cheapest honest test of whether composed looks are any good.
+
+#### The tree — MEASURED, by composing a record in node and reading its own header
+
+**The accordion the card labels SHADING is the group `surface`** — `_groupLabel: 'shading'`
+(`app/js/formats/_sdf-template.js:583`, and every relocated control takes the same label at
+`:1352`). Its children are **exactly what the code nests under it**, read from each descriptor's
+own `_groupParent` rather than from any list: seven direct children, one of which (`lighting`)
+carries the three lamps. Nothing else is in scope, and two neighbours that look like they might be
+are measurably NOT: `sub:form` declares `_groupParent: 'shape'` and `sub:bgtexture` declares
+`background`.
+
+`A8SdfTemplate.buildShader(record)` (`_sdf-template.js:11102`) emits the ISF header whose `INPUTS`
+carry their final display `_groupId` and `_groupParent` (post-`_a8Taxonomy`, `:1327`). Composed
+offline against `app/user-media/shapes/index.json`, the shading subtree is **identical on every
+record that composed** — it is template state, not record state:
+
+| group id | card label | `_groupParent` | knobs | menu rows | menu enums | `*Blend` (EXCLUDED) |
+|---|---|---|---|---|---|---|
+| `surface` | **shading** | — (top) | 12 | 7 | 0 (7 bools: the 6 layer switches + `lightingEnable`) | 1 (`stackBlend`) |
+| `sub:color` | color | `surface` | 4 | 2 | 2 | 0 |
+| `sub:palette` | palette | `surface` | 17 | 6 | 6 | 1 |
+| `sub:texture` | texture | `surface` | 7 | 4 | 4 | 1 |
+| `sub:material` | material | `surface` | 27 | 2 | 2 | 1 |
+| `sub:lighting` | lighting | `surface` | 5 | 4 | 1 (+3 lamp-enable bools) | 1 |
+| `sub:light1` / `2` / `3` | light 1/2/3 | `sub:lighting` * | 15 each | 5 each | 2 each (+3 bools) | 1 each |
+| `sub:structure` | structure | `surface` | 56 | 15 | 15 | 2 |
+| `sub:edge` | edge | `surface` | 7 | 3 | 3 | 1 |
+| **total** | | | **180** | **58** | **39 enums + 19 bools** | **11** |
+
+\* the lamp parent is VALUE-AWARE, not a constant: `_TAX_SUB_PARENT` / `_lampParent`
+(`_sdf-template.js:1295-1305`) resolves to `sub:lighting` by default and to `surface` when that
+lamp's own `lightNInStack` bit is set — the lamp-as-layer ruling. Either way it is inside SHADING.
+
+**What the accordion does NOT contain, measured the same way — every one of these is a sibling of
+SHADING or a child of something else, never a child of `surface`:** `marching` (label *render
+fidelity*, 22 knobs — operator-excluded, and it was never nested here anyway), `sub:form` (label
+*form* — render mode / shells / volume / slices; `_groupParent: 'shape'`, geometry per
+`shading-stack.md` §3), `background` (3) + its own `sub:bgtexture` (`_groupParent: 'background'`),
+`world` (113), `transform` (30), `shape` (the record's own math), `camera`.
+
+⚠ **Exclude by DISPLAY group, never by the raw declaration.** The eleven layer channel/target picks
+are DECLARED `_groupId:'marching'` at `_sdf-template.js:1082` / `:1088` and are RELOCATED into
+their own sub by the taxonomy — they display and bank in `sub:structure` / `sub:edge` / `sub:color`
+/ `sub:palette` / `sub:texture`, which is where the measurement above found them. An exclusion
+written against the declaration would silently eat a third of the menu enums.
+
+#### The menu enums are ordinary inputs, and they are already on the walk
+
+A menu row is a descriptor carrying `_menuOnly: true` — *"ordinary declared INPUTs, so they ride
+`card.params` and the preset walk with no new machinery (STATE-NOT-IN-PRESET-WALK)"*
+(`_sdf-template.js:578-584`, the layer-bit generator's own header). Mechanically:
+`card.js:3047-3056` indexes `byGroup` from `_groupId` with **no `_menuOnly` filter**, and the group
+bank's `paramNames()` (`card.js:3287-3294`) unions those names — so every one of the 58 menu rows
+is inside its accordion's scoped bank face today. **No hole to open.** Two consequences the
+composer must respect:
+
+- A scoped recall pushes enums without a rebuild, so the app resyncs its own triggers
+  (`_cardSyncSelectTriggers`, `card.js:3300-3306`, against `SELECTOR-TRIGGER-STALE-ON-PROGRAMMATIC-CHANGE`).
+  The proof macro therefore asserts the **effect**, never the trigger label.
+- `structElemPalette` / `structGapPalette` enumerate **live app state** (the user palette store)
+  and read `VALUES: []` offline — the same live-state dependency I5 measured on the bank key. The
+  sampler treats an empty value space as non-composable and names it, rather than picking 0.
+
+#### The banks — keying, answered from code
+
+| question | answer | cite |
+|---|---|---|
+| numbered slots per bank | **11** (`'1'…'11'`) plus the derived `D` | `app/js/preset-bank.js:124` |
+| a group bank's own persistence | `own:<parent SOURCE key>\|<bankKey>` in the disk-backed kv store | `preset-bank.js:1231-1246` |
+| the parent source key | `src_<sha256>` of the COMPOSED source, resolved async | `card.js:6612-6636` |
+| a derived sub bank's `bankKey` | `'group:' + groupId` (instance-free) | `app/js/modules/_mod-groupbank.js:334` |
+| FACTORY slots (what ships) | `A8_GROUP_BANKS[<bank>].presets`, declared in the shared template's header | `_sdf-template.js:6137-6288` |
+| the cross-record surface | `a8_sdf_factory_banks` — a disk-backed kv entry MERGED over the declared banks **at compose time**, so *"every record inherits instantly (no rebake — records compose at click)"* | `_sdf-template.js:6299-6321` |
+| who writes it today | the ISF pane's `factory ▸ promote bank presets to factory` row, reading `card._groupBankStores` | `app/js/editors/isf.js:271-296` |
+| proven already | four factory camera slots ship from disk and appear on a fresh compose of an arbitrary record | macro `sdf.factory-wander-reveal` (`design/nav-map-shards/ma3c-records.md:534`) |
+
+**So the answer to "shade all models" is the factory surface, and it is NOT the source-keyed bank.**
+A per-card bank is keyed by the composed source sha; 495 models means 495 keys, and I5 measured
+that a key cannot be derived offline. The factory entry is keyed by BANK, not by record — one
+write, every model, and the I5 key problem does not arise.
+
+⚠ **ONE MECHANICAL GAP, measured, and it is the whole app-side delta.** The compose-time merge
+refuses any bank key the header does not already declare:
+`if (!header.A8_GROUP_BANKS[bk] || …) return;` (`_sdf-template.js:6315`). The declared keys are
+`surface · transform · camera · shape · render · background · world` — the **ten `sub:*` children
+are DERIVED banks** (minted per accordion by `_mountBankForSection`, `card.js:3156`), so factory
+slots for them are written by promote and then **silently dropped at compose**. Two candidate
+fixes, both small; this is decision-queue item 1:
+
+- **(a) MINT ON MERGE (recommended — the shared home).** When a factory key is absent from the
+  header, synthesise `{mountGroup: <key>, applyMode: 'scoped', presets: {}}` before merging. ~3
+  lines at `:6315`, and it is self-maintaining for any sub minted later. The mount already treats
+  an undeclared accordion as owning its own gid (`card.js:3182-3183`), so a declaration minted this
+  way behaves exactly as the derived bank already does.
+- **(b) DECLARE THE TEN.** Add `_neutralBank('sub:material','scoped',{})` etc. to the header block.
+  Explicit, but ten hand-written declarations that a future sub will not join.
+
+#### The nesting — what a parent slot carries today, and the honest limit
+
+`_mountBankForSection` unions **every descendant section's gid** into the parent's owned set
+(`card.js:3197-3202`, the S88 "bank where you are shown" ruling) and hands that list to
+`paramNames()`. So:
+
+- a `surface` slot **snapshots the children's VALUES**, flat — all 180 knobs including the 58 menu
+  rows. It does not reference child slot ids.
+- a child slot holds its own group's values only, and is independent.
+- **child bank CONTENTS travel only on the CARD bank**, as the snapshot's `nestedBanks` field
+  (`presetBank.collectNested` / `applyNested`, `card.js:5472` / `:6425`; proven by the macro
+  `sdf.toplevel-preset-captures-banks`). There is **no** per-parent mechanism that swaps a child
+  bank's ROSTER when a parent slot is recalled.
+
+So the operator's *"each of the children preset banks full for each of the top-level presets"* has
+two readings, and the difference is one of app machinery:
+
+- **READING A — what ships with zero new app behaviour (recommended).** The factory carries ONE
+  union: N top-level `surface` looks, each complete (every child's values, every menu enum), AND
+  each child bank filled with its own 11 alternatives — a parts menu. Recall a look, then re-shade
+  it by swapping one child (a different lamp rig, a different material, a different palette). Every
+  top-level look is reachable from every child alternative; the child banks are shared across
+  looks rather than owned by one.
+- **READING B — a child roster PER top-level look.** Would require the `surface` bank to carry its
+  own nested payload (a `nestedBanks` named field with an `applyNamedField` handler — the machinery
+  exists at `card.js:3313-3325`, the fx-chain precedent, but has never been used this way). NEW
+  behaviour; decision-queue item 2.
+
+#### The combinatorics, stated honestly
+
+11 banks in the subtree (`surface` + 10 children) × 11 numbered slots = **121 factory slots, the
+hard ceiling**, of which at most 11 can be top-level looks. Under reading A: **11 looks × 10 child
+axes × 11 alternatives = 1,210 single-swap variants**, and the full cross-product of child choices
+is 11^10 — a number worth naming only to say that it is not a menu anybody browses. "As many
+possible combinations" is bounded by 11 per axis, and the real design question is which 11 of each.
+Under reading B the ceiling is unchanged; only the ownership of the child slots moves.
+
+#### The composer side
+
+| piece | today | this increment |
+|---|---|---|
+| stack ids | `shape · mathops · shade · layers · fx · modulation · material · lighting` (`app/core/types.ts:81`) | **+ `shading`** — one new id |
+| what `shade` is | the 13-entry raymarch OP roster (`records.ts:150`, `_raymarch-ops.js`) — ops layered ONTO a look | unchanged; it is not this tree |
+| what `material` / `lighting` are | the **mesh** rosters `A8MeshMaterial.INPUTS` / `A8Lighting.INPUTS` (`records.ts:153-154`), offered on mesh routes only | unchanged; the SDF card's `sub:material` / `sub:light*` are different knobs entirely |
+| roster source | `app/user-media/shapes/rosters.json` `shared.*` — 8 rosters, **none from `_sdf-template.js`** | **+ `shared.shading`**, exported by `app/tools/export-rosters.js` from `A8SdfTemplate.buildShader` on a resolver-picked record, filtered to the 11 display gids, through the existing `pickSharedInput()` whitelist (`export-rosters.js:209`) |
+| menu picks | `shared.menus` holds 4 entries (`scaleMode`, `sliderBlend`, `opActive.sdf`, `clock.source`) — none of the 39 | the 39 arrive as ordinary enum knobs inside `shared.shading` (`VALUES`/`LABELS` already on the descriptor), sampled as menu Choices per `docs/COMPOSER.md` §9 — no second roster shape |
+| axes | `STACK_AXES` (`app/core/axes.ts:74`) | `shading: ['contrast','warmth','density','depth']` — existing axis words, **no new axis and no new axis option** |
+| descriptor debt | I7's blocker | **none here: 180/180 knobs carry `DESCRIPTION`, measured.** The two live-state palette enums are the only non-composable rows and they are NAMED, not defaulted |
+
+**The three exclusions, each mechanical:**
+
+1. **Blend modes** — a skip list in `stackKnobs('shading')` on the descriptor's own NAME shape:
+   the 11 `*Blend` rows plus `blendSource`. They are filtered out of the roster, so no sampler can
+   reach them and no slot can carry them. (Not prose: the same filter shape `mathops` already uses
+   for `_glyOpCompanion`, `samplers.ts:170`.)
+2. **Bindings** — the `modulation` stack is absent from this increment's stack set, so no motion
+   Nouls run and `slot.ts` emits no `bind:<NAME>` key and no `ranges` entry. The refusal is
+   structural, not a flag.
+3. **Per-slider presets** — the writer emits bank slots only; no `sliderPresets` / slider-author
+   field is ever written. **Marching** is excluded the same way as (1): its 22 knobs are simply not
+   in the roster, because the roster is filtered to the eleven shading display gids.
+
+**The deliver delta — the smallest one.** `app/server/deliver.ts` today writes ONE card-bank slot
+through `POST /api/preset-bank/<key>` with a handed-in key. This increment adds a **second
+transport, not a second writer**: `POST /api/kv/merge` with
+`{kv: {a8_sdf_factory_banks: "<json string>"}}` (`app/tools/dev-server.js:837-870`) — the app's own
+endpoint, the app's own storage canon, per-key merge so no other kv key is touched. It keeps all
+four of deliver's obligations verbatim: the app's own endpoint, no key derivation (there is no key
+to derive — this is the win), read-build-read-again compare-and-swap against a live app promoting
+its own slots, and read-back deep-equality after the POST. `renderSlot` (`app/core/slot.ts`) is
+reused unchanged for the per-slot body; only the envelope differs (`{presets:{…}}` per bank key
+instead of one card snapshot).
+
+#### The proof — ONE macro, light tier
+
+`jev.shading-factory-looks`, riding the user path end to end (`ACCEPTANCE-MACRO-BYPASSES-USER-PATH`):
+
+1. Library → click a resolver-picked model (never an operator-cited file, never Strobosphere) →
+   card delivered.
+2. Open the SHADING accordion → its bank row shows the composed top-level slots, by name.
+3. Click-recall one → **assert the EFFECT**: read the card's params for a sample of the look's own
+   keys across ≥3 children (a material pick, a lamp type, a palette pick, a structure mode — enums
+   included) and a `compositorDebugReadCardPixel` sample that MOVED from the pre-recall frame,
+   consecutive-poll stabilised (`ONE-SHOT-VERIFY-SAMPLES-TRANSIENT-STATE`).
+4. Open one child accordion → its bank shows the composed child slots → recall a different one →
+   the pixel moves again while the look's other children hold.
+5. Load a SECOND, unrelated model → the same factory slots are present on its SHADING accordion —
+   which is the whole claim of the increment, and the only step that could not be faked by a
+   per-record write.
+
+No falsify leg, no preset gate, no identity proof, no corpus run: this adds CONTENT to the
+known-good factory-bank path that `sdf.factory-wander-reveal` already proves.
+
+#### Decision queue — only what code cannot answer
+
+1. **The merge gap fix**: (a) mint-on-merge at `_sdf-template.js:6315`, or (b) declare the ten
+   `sub:*` banks in the header. Recommended (a). *(App code — needs the operator's word and a
+   builder lane; this plan writes none.)*
+2. **Reading A or reading B** of *"each of the children preset banks full for each of the top-level
+   presets"* — a shared parts menu (no new app behaviour), or a child roster owned per top-level
+   look (a new `nestedBanks` named field on the surface bank).
+3. **How many top-level looks**, 1…11. The ceiling is 11; the question is how many are worth
+   authoring before he looks at them.
+4. **Which child banks get filled first** — the four he named are `lighting` (with its three lamp
+   subs), `material`, `palette`, `structure`; `color`, `texture` and `edge` are in the tree and
+   could be held back.
+5. **The proof subjects** — two models, resolver-picked, one march-route and one `either`-route.
+   Never an operator-cited file; never Strobosphere.
+6. **Whether the factory entry ships in the repo** (`app-config/kv.json` committed) or is written
+   by the composer run on a machine. Shipping it is what makes the looks arrive for a user who
+   never runs the composer.
 
 ---
 
