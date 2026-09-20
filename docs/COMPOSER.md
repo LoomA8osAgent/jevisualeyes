@@ -231,7 +231,11 @@ Two modes, recorded per decision (`app/core/selection.ts:11`):
 
 PRNG state persists atomically with each accepted decision (`seedBefore`/`seedAfter`), so **the
 same stored responses plus the same initial PRNG state replay exactly**. A live rerun does
-not, and this contract never claims otherwise. Both the provider's choice and the committed
+not, and this contract never claims otherwise. That claim is EXECUTABLE rather than asserted:
+`ReplayProvider` (`app/server/replay.ts`) answers a re-run from the composed unit's own stored
+responses — keyed by the canonical `requestHash`, looking up and never inferring, exactly as
+the fixture never infers (§3.2) — and I4's acceptance is a sha256 comparison of the two
+snapshots (`app/server/compose.ts`, `npm run compose:fixture`). Both the provider's choice and the committed
 choice are always recorded.
 
 ## §5 Receipts are provenance
@@ -254,6 +258,13 @@ visible in the record. The receipts for one composition ride the composed artifa
 `generation.provenance` (`app/core/types.ts:114`) so they survive a save/recall round trip — a
 provenance field that vanishes on recall is the worst kind of hole — while the SQLite journal
 keeps the run's own copy (`app/server/db.ts:92`).
+
+**Where the receipts ride TODAY (I4), and where they are going (I5).** A composed unit is
+written as an artifact (`ComposedUnit`, `app/server/compose.ts`) carrying the snapshot, its
+sha256, its receipts, and — one thing more than §5 requires — the accepted REQUEST and
+RESPONSE of every committed decision, which is what lets the unit be re-run without a
+provider at all. `generation.provenance` on the snapshot itself, and the write going out
+through the consuming app's own preset-bank path, are I5's (`docs/PLAN.md` §1).
 
 **One more, ADDITIVE and OPTIONAL field rides the same shape**: each `stacks[stack]` entry may
 carry `lookVerdict:{receiptId, answers}` (`app/core/types.ts:109`) — the eye's own read of a
@@ -324,6 +335,15 @@ Six axes, situation words throughout (`app/core/axes.ts:37`):
 | `warmth` | `cold` · `neutral` · `warm` · `any` |
 | `order` | `chaotic` · `loose` · `regular` · `crystalline` · `any` |
 | `depth` | `flat` · `shallow` · `deep` · `any` |
+
+**A TAG IS A COORDINATE, WRITTEN IN THOSE WORDS** — `motion:pulse density:busy contrast:hard`
+— and compiling one is a projection onto each stack's own axes and nothing else
+(`compileTag`, `app/core/tags.ts`; the stack's axes are `STACK_AXES`). There is deliberately
+**no tag→coordinate table**: a named tag would be a named style wearing a lookup, and the
+table would be the place the style name lived. An axis the tag does not name is absent from
+the coordinate, which is what `any` means below; an axis or a word the roster does not carry
+is a REFUSAL naming both, never a silently dropped token — a mistyped tag that composed at
+the origin would look like a composition.
 
 `any` means *this aspect is left free* — so an unconstrained axis draws across the whole
 range, and there is deliberately no entry for it in the position table
@@ -416,9 +436,33 @@ ASSEMBLY no model  one snapshot per tag, receipts attached, written through the 
 Builders: `buildAxisRequest` (`app/core/requests.ts:38`), `buildLookRequest`
 (`app/core/requests.ts:53`), `buildMotionRequest` (`app/core/requests.ts:74`). The domain half
 that decides *what to ask next* is a `Composer` injected into the spine
-(`app/core/composer.ts:36`, seam at `app/server/jobs.ts:55`); the spine owns persistence,
-retry, validation, selection, receipts and the transaction, and owns **no sampling**, so the
-two can never drift into each other.
+(`UnitComposer`, `app/core/composer.ts:99`, seam at `app/server/jobs.ts:51`); the spine owns
+persistence, retry, validation, selection, receipts and the transaction, and owns **no
+sampling**, so the two can never drift into each other.
+
+**What is BUILT of that pipeline today (`docs/PLAN.md` §1 I4) is the reduced form, and the
+reduction is by choice rather than by obstacle:** the tag GIVES the coordinate, so CALL 1's
+axis half is not asked and its motion-Noul half is — chunked at ≤ 6 per request, §7.1 —
+CALL 2 runs with a **bounded accept/resample per stack**, CALL 3 is not asked at all (a
+bind's movement shape is still SAMPLED into the `modulation` stack's own look, exactly as
+the sampler draws it), and ASSEMBLY writes a composed-unit FILE rather than the consumer's
+preset bank, which is I5's path to own. The axis Choices and CALL 3 are I6.
+
+**The accept/resample, and why a committed look is re-read by code.** `acceptLook`
+(`app/core/composer.ts`) re-checks a committed look before the unit may finish, on two
+grounds and no others: its values are re-run through `assertLookInBounds` (which cannot fire
+on a look this repo sampled — validity is the generator's property, §1 — so what it catches
+is a candidate-map/receipt mismatch, §4.2), and, for the stacks that are parameter vectors,
+§11's own sentence that a look whose every knob sits at its DEFAULT is structurally valid and
+no look at all. A SET stack (`layers` / `fx` / `modulation`) legitimately draws the empty set
+— "no effects" is a look — so the second ground does not apply to it. A rejected stack is
+re-sampled at a perturbed seed and re-asked at most `resampleCap` times (3 by default) and
+then the run **REFUSES**, naming the stack, the count and the reason. It never ships the look
+its own check rejected, and a rejected stack whose resample offers no menu is a refusal too
+rather than the rejected look standing by default (§3.2). The seed is perturbed per round
+because in `model` selection mode the spine's PRNG does not advance, so an unperturbed
+resample would redraw the identical menu. This is not a taste gate: taste is the one thing
+neither code nor a model can judge (§11).
 
 The spine's loop is: **persist the exact pending payload BEFORE the network call**
 (`app/server/jobs.ts:218` — it is what makes a crashed bake resumable and a receipt honest) →

@@ -2,8 +2,17 @@
   "name": "jevisualeyes",
   "version": "0.1.0",
   "private": true,
-  "description": "jevisualeyes — an offline, author-time preset composer for A8os fragment-shader records: a decision model picks from menus that code enumerates, and code renders the result",
-  "keywords": ["jevisualeyes", "a8os", "fragment-shader", "isf2", "presets", "decision-model", "composer", "offline"],
+  "description": "jevisualeyes \u2014 an offline, author-time preset composer for A8os fragment-shader records: a decision model picks from menus that code enumerates, and code renders the result",
+  "keywords": [
+    "jevisualeyes",
+    "a8os",
+    "fragment-shader",
+    "isf2",
+    "presets",
+    "decision-model",
+    "composer",
+    "offline"
+  ],
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -14,6 +23,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "smoke:fixture": "tsx scripts/smoke-fixture.mjs",
+    "compose:fixture": "tsx scripts/compose-fixture.mjs",
     "test:live": "tsx scripts/live-smoke.mjs"
   },
   "dependencies": {

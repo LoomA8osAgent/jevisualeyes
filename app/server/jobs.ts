@@ -438,6 +438,23 @@ export class JobRunner {
       .get(id) as any;
     return r?pendingFromRow(r):null;
   }
+  /** Every ACCEPTED provider call of this job: the exact request that was persisted before
+   *  the call, and the response that answered it. This is what makes a composed unit
+   *  re-runnable WITHOUT a provider (`docs/PLAN.md` §1 I4): the answers are stored beside
+   *  the snapshot, so a replay is a lookup, never a second inference.
+   *  Only the `ok` attempt of a committed decision is returned — a failed attempt has no
+   *  response, and an uncommitted decision is not part of the unit (§7: expose a unit only
+   *  when every one of its decisions committed). */
+  callsFor(id:string):{decisionIndex:number;kind:DecisionKind;requestHash:string;
+                       request:DecisionRequest;response:DecisionResponse}[] {
+    const rows=this.db.prepare(`SELECT p.decision_index,p.kind,p.request_hash,p.request_json,a.receipt_json
+      FROM pending_decisions p JOIN attempts a ON a.decision_id=p.decision_id
+      WHERE p.job_id=? AND p.accepted_receipt_json IS NOT NULL AND a.status='ok'
+      ORDER BY p.decision_index,a.attempt_index`).all(id) as any[];
+    return rows.map(r=>({decisionIndex:r.decision_index,kind:r.kind as DecisionKind,
+      requestHash:r.request_hash,request:JSON.parse(r.request_json),
+      response:JSON.parse(r.receipt_json).response as DecisionResponse}));
+  }
   receiptsFor(id:string):DecisionReceipt[] {
     return (this.db.prepare(`SELECT accepted_receipt_json FROM pending_decisions WHERE job_id=? AND accepted_receipt_json IS NOT NULL ORDER BY decision_index`)
       .all(id) as any[]).map(r=>JSON.parse(r.accepted_receipt_json)).flat();

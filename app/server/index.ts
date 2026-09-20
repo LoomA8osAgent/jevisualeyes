@@ -21,8 +21,8 @@ import type {Composer} from './jobs.js';
 import {providerFor} from './provider.js';
 import {loadRecordIndex} from '../core/records.js';
 import {loadRosters} from '../core/rosters.js';
-import {LooksComposer} from '../core/composer.js';
-import type {LooksComposerOptions} from '../core/composer.js';
+import {UnitComposer} from '../core/composer.js';
+import type {UnitComposerOptions} from '../core/composer.js';
 import {FixtureProvider} from './fixture.js';
 import type {DecisionProvider} from '../core/types.js';
 
@@ -34,11 +34,15 @@ export function buildProvider(cfg:AppConfig):DecisionProvider {
     ()=>new FixtureProvider(cfg.fixturePath));
 }
 
-export function createRunner(composer:Composer, overrides:Partial<AppConfig>={}):Runner {
+/** `provider` overrides the configured one — the REPLAY leg's door (`server/replay.ts`),
+ *  and nothing else: it is never a fallback, and the caller that passes one says so
+ *  explicitly (§3.2). */
+export function createRunner(composer:Composer, overrides:Partial<AppConfig>={},
+                             provider?:DecisionProvider):Runner {
   const cfg:AppConfig={...loadConfig(),...overrides};
   const db=openDb(cfg);
   const bus=new EventBus(db);
-  const provider=buildProvider(cfg);
+  provider=provider??buildProvider(cfg);
   const runner=new JobRunner(db,cfg,()=>provider,composer,bus);
   runner.recover();                       // never auto-resumes spend
   return {cfg,db,bus,runner,provider};
@@ -46,8 +50,9 @@ export function createRunner(composer:Composer, overrides:Partial<AppConfig>={})
 
 /** Compose ONE (record, tag) to completion and return it with its receipts. */
 export async function runUnit(composer:Composer, recordId:string, tag:string,
-                              opts:{commandId?:string;seed?:number;overrides?:Partial<AppConfig>}={}) {
-  const r=createRunner(composer,opts.overrides??{});
+                              opts:{commandId?:string;seed?:number;overrides?:Partial<AppConfig>;
+                                    provider?:DecisionProvider}={}) {
+  const r=createRunner(composer,opts.overrides??{},opts.provider);
   const job=r.runner.startJob(recordId,tag,opts.commandId??`${recordId}:${tag}`,
     opts.seed!==undefined?{seed:opts.seed}:{});
   await r.runner.join(job.id);
@@ -59,9 +64,9 @@ export async function runUnit(composer:Composer, recordId:string, tag:string,
 /** The domain half, built off ONE app tree: the record descriptors + the shared rosters.
  *  `jobs.ts` owns the spine and no sampling; this is what feeds its `Composer` seam. */
 export function buildComposer(cfg:AppConfig,
-                              opts:Omit<LooksComposerOptions,'index'|'rosters'|'model'> &
-                                   {model?:string}):LooksComposer {
-  return new LooksComposer({
+                              opts:Omit<UnitComposerOptions,'index'|'rosters'|'model'> &
+                                   {model?:string} = {}):UnitComposer {
+  return new UnitComposer({
     index:loadRecordIndex(cfg.shapesIndex, cfg.appRoot, cfg.rostersArtifact),
     rosters:loadRosters(cfg.appRoot, cfg.rostersArtifact),
     model:opts.model ?? (effectiveProvider(cfg)==='jev' ? cfg.jevModel : cfg.localModel),

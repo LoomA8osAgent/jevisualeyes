@@ -31,7 +31,10 @@ What survives the swap, and what each piece does now.
 | the record descriptors | `app/core/records.ts` | one record's knobs with their bounds and their situation sentences, each tagged composable or carrying the reason it is not: a knob with no sentence is held at its default and named, never guessed |
 | the samplers | `app/core/samplers.ts` | N complete looks per stack from an axis coordinate, seeded so a (record, coordinate, seed) triple replays byte-identically; every value is drawn inside its knob's declared bounds and the finished look is re-checked before it is offered |
 | the candidate map | `app/core/candidates.ts` | sampled looks → the string-valued criteria a request carries, persisted beside them so a returned key is LOOKED UP and never interpreted |
-| the looks composer | `app/core/composer.ts` | the domain half of the spine's seam: a tag compiles to a coordinate, the samplers draw the menus, and one `looks` step goes out |
+| the tag compiler | `app/core/tags.ts` | a tag IS a coordinate, written in the axis words themselves (`motion:pulse density:busy`) and projected onto each stack's own axes. No tag→name table: a named tag would be a named style wearing a lookup |
+| the unit composer | `app/core/composer.ts` | the domain half of the spine's seam: the tag compiles to a coordinate, the motion Nouls go out chunked at ≤6, the samplers draw the menus, and every committed look is re-read by `acceptLook` — a rejected stack is re-sampled at most three times and then the run refuses |
+| composing one unit | `app/server/compose.ts` | one (record, tag) end to end → an artifact carrying the snapshot, its sha256, its receipts and the accepted request/response of every call |
+| the replay provider | `app/server/replay.ts` | re-runs a composed unit from its OWN stored responses, keyed by the canonical request hash. It looks up and never infers, so a re-run needs no provider at all |
 | request builders | `app/core/requests.ts` | one builder per decision kind. It samples nothing: candidates arrive as arguments, because code enumerates and the model only picks |
 | the providers | `app/server/provider.ts`, `app/server/fixture.ts` | one HTTP adapter serving both the local runtime and the remote endpoint over the same wire, plus a planted-map fixture that is TOLD what to answer and never infers |
 | the spine | `app/server/jobs.ts` | persist the exact pending payload → call → validate → select → **one durable transaction** → receipt, with an epoch guard, bounded retry, a request ceiling that pauses rather than fails, and boot recovery that never auto-resumes spend |
@@ -63,6 +66,7 @@ npm start                    # `status` — the provider, the model, the journal
 npm run typecheck            # strict TS
 npm test                     # the kernel suite — no network, no model
 npm run smoke:fixture        # the whole seam end to end on the planted-map fixture
+npm run compose:fixture      # ONE record, ONE tag, composed and then replayed byte-identically
 npm run test:live            # ONE billable remote call; needs LIVE_JEV=1 and a key
 ```
 
