@@ -12,7 +12,8 @@ import {test, assert} from 'vitest';
 import {loadConfig} from '../server/config.js';
 import {loadRosters} from '../core/rosters.js';
 import {shadingBankIds, bankKnobs} from '../core/shading.js';
-import {stratifiedBankSlots, menuRows} from '../core/shading-samplers.js';
+import {stratifiedBankSlots, menuRows, disambiguateLabels,
+  spreadShadingCoordinates, disambiguateCoordinateLabels} from '../core/shading-samplers.js';
 
 const cfg = loadConfig();
 const rosters = loadRosters(cfg.appRoot, cfg.rostersArtifact);
@@ -39,8 +40,25 @@ for (const gid of shadingBankIds(rosters)) {
     if (duplicates.length) {
       for (const d of duplicates) assert.ok(d.duplicateOfSlot >= 1 && d.duplicateOfSlot < d.slot);
     }
+    // LABELS ARE UNIQUE WITHIN THE BANK (coordinator's last fix, 2026-09-20: "flat, warm" at
+    // looks 3 and 10; a broader check then found EVERY child bank had collisions — e.g.
+    // sub:color's "base color: set" on all 11 slots — because the single-strongest-mover
+    // label ignores the other 3 knobs entirely). `disambiguateLabels` must resolve every
+    // collision, even when the underlying CONTENT is an exact duplicate (`sub:lighting`'s
+    // padded slots) — the "#N" fallback guarantees this unconditionally.
+    const names = disambiguateLabels(looks);
+    assert.equal(names.length, SLOTS);
+    assert.equal(new Set(names).size, SLOTS, `${gid}: disambiguateLabels produced a duplicate — ${JSON.stringify(names)}`);
+    for (const n of names) assert.ok(n.length > 0 && n.length <= 24, `${gid}: label "${n}" is empty or over 24 chars`);
   });
 }
+
+test('surface — coordinate-derived labels are unique across all 11 looks, even after collision', () => {
+  const coords = spreadShadingCoordinates(11, 7331);
+  const names = disambiguateCoordinateLabels(coords);
+  assert.equal(new Set(names).size, 11, `surface labels not unique: ${JSON.stringify(names)}`);
+  for (const n of names) assert.ok(n.length > 0 && n.length <= 24, `label "${n}" invalid length`);
+});
 
 test('sub:lighting — only 8 distinct states exist (3 bools); all 8 present, 3 slots duplicate by necessity', () => {
   const {looks, duplicates} = stratifiedBankSlots('sub:lighting', rosters, SEED, SLOTS);

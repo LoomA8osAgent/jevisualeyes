@@ -26,8 +26,14 @@ export interface ShadingLook {
   /** a SHORT, state-only label ("phong", "off") for a preset-bank slot name — the SINGLE
    *  strongest mover only, never a joined list: a joined list truncates mid-item and leaves
    *  a dangling separator ("color layer: off," measured, audit item 2), and a bank's slots
-   *  already differ on their own knobs, so one word is enough to tell them apart. */
+   *  already differ on their own knobs, so one word is enough to tell them apart. THIS ALONE
+   *  IS NOT GUARANTEED UNIQUE within a bank (two slots can share the same strongest mover,
+   *  e.g. both landing "base color: set") — `disambiguateLabels` is the uniqueness pass. */
   label:string;
+  /** up to 3 knob-LABEL-prefixed state words, strongest mover first — the same data
+   *  `label` was built from, kept so a collision can be resolved by adding the NEXT
+   *  strongest word instead of re-deriving anything. */
+  topWords:string[];
   params:Record<string,JsonValue>;
 }
 
@@ -145,8 +151,39 @@ export function sampleBankLook(gid:string, slot:number, attempt:number, seed:num
   const description = top.length
     ? top.map(({k,v}) => describeDraw(k, v)).join('; ')
     : `${gid} — held at the record's defaults`;
-  const label = top.length ? cleanLabel(stateWord(top[0].k, top[0].v)) : 'defaults';
-  return {id:`${gid.replace(/[^a-z0-9]/gi,'_')}_s${slot}_a${attempt}_${short}`, description, label, params};
+  const topWords = top.map(({k,v}) => stateWord(k, v));
+  const label = topWords.length ? cleanLabel(topWords[0]) : 'defaults';
+  return {id:`${gid.replace(/[^a-z0-9]/gi,'_')}_s${slot}_a${attempt}_${short}`, description, label, topWords, params};
+}
+
+/** Resolve a bank's 11 (or fewer) `ShadingLook`s to UNIQUE preset names, in order: try the
+ *  single strongest mover first (`label`), then the two strongest joined, then three,
+ *  falling back to an explicit "#N" suffix on the rare case even three still collide (a
+ *  bank whose own state space is small enough to force exact-duplicate CONTENT, e.g.
+ *  `sub:lighting`, will also force identically-worded top movers no amount of extra words
+ *  fixes — the numeral suffix is the honest last resort, never a silent collision). */
+export function disambiguateLabels(looks:ShadingLook[]):string[] {
+  const used = new Set<string>();
+  const out:string[] = [];
+  looks.forEach((look, i) => {
+    const tries = [
+      look.topWords.length ? cleanLabel(look.topWords[0]) : 'defaults',
+      look.topWords.length >= 2 ? cleanLabel(look.topWords.slice(0,2).join(', ')) : null,
+      look.topWords.length >= 3 ? cleanLabel(look.topWords.slice(0,3).join(', ')) : null,
+    ].filter((s):s is string => s !== null);
+    let chosen = tries.find(t => !used.has(t));
+    if (!chosen) {
+      // Reserve room for " #N" BEFORE truncating the base — cleanLabel on the already-built
+      // "base #N" string could re-truncate and strip the very suffix meant to disambiguate
+      // (measured: `sub:color`/`sub:light1` still collided after this fallback pre-fix).
+      const suffix = ` #${i+1}`;
+      const base = cleanLabel(tries[tries.length-1] ?? 'look', Math.max(4, 24 - suffix.length));
+      chosen = base + suffix;
+    }
+    used.add(chosen);
+    out.push(chosen);
+  });
+  return out;
 }
 
 /* ── spread, measured/guaranteed IN CODE (operator ruling 2026-09-20 13:57, verbatim:
@@ -407,13 +444,52 @@ export function spreadShadingCoordinates(n:number, seed:number):ShadingCoordinat
 export const coordinateLine = (c:ShadingCoordinate):string =>
   SHADING_AXES.map(a => `${a} ${c[a]}`).join(', ');
 
-/** A surface look's label: the TWO axis words whose position deviates most from the
- *  coordinate's own centre (0.5) — "hard, warm" rather than all four at once (unreadable)
- *  or a `moderate`/`neutral`/`medium` middle word (uninformative; deviation ≈ 0 for those). */
-export function coordinateLabel(c:ShadingCoordinate):string {
+/** Inverse of `coordinateLine` — parses `"contrast hard, warmth warm, density medium, depth
+ *  deep"` back into `{contrast:'hard', warmth:'warm', …}`. Exists so a STORED artifact's
+ *  `surfaceSummary[].coordinate` string can be replayed (relabeled) without re-deriving the
+ *  coordinate from anything else — never a second source of truth for the four words. */
+export function parseCoordinateLine(line:string):ShadingCoordinate {
+  const out:Partial<ShadingCoordinate> = {};
+  for (const part of line.split(',').map(s => s.trim())) {
+    const sp = part.indexOf(' ');
+    if (sp < 0) continue;
+    const axis = part.slice(0, sp), word = part.slice(sp+1);
+    if ((SHADING_AXES as readonly string[]).includes(axis)) (out as Record<string,string>)[axis] = word;
+  }
+  for (const a of SHADING_AXES) if (!out[a]) throw new Error(`parseCoordinateLine: "${line}" is missing "${a}"`);
+  return out as ShadingCoordinate;
+}
+
+/** The axis words ranked by how far their position deviates from the coordinate's own
+ *  centre (0.5) — strongest first. `coordinateLabel` and its disambiguation both read this
+ *  ranking so a collision extends with the NEXT-strongest word rather than a different rule. */
+function rankedAxisWords(c:ShadingCoordinate):string[] {
   const withDev = SHADING_AXES.map(a => ({
     word:c[a], dev:Math.abs((AXIS_POSITION[a]?.[c[a]] ?? 0.5) - 0.5)
   }));
   withDev.sort((x,y) => y.dev - x.dev);
-  return cleanLabel(withDev.slice(0,2).map(x => x.word).join(', '));
+  return withDev.map(x => x.word);
+}
+
+/** A surface look's label: the TWO axis words whose position deviates most from the
+ *  coordinate's own centre (0.5) — "hard, warm" rather than all four at once (unreadable)
+ *  or a `moderate`/`neutral`/`medium` middle word (uninformative; deviation ≈ 0 for those).
+ *  `avoid`, when given, extends to 3 (then all 4) words on collision — the coordinates
+ *  themselves are already guaranteed distinct (`spreadShadingCoordinates`); a same-label
+ *  collision only means two coordinates share their two STRONGEST words. */
+export function coordinateLabel(c:ShadingCoordinate, avoid?:Set<string>):string {
+  const ranked = rankedAxisWords(c);
+  if (!avoid) return cleanLabel(ranked.slice(0,2).join(', '));
+  for (let n = 2; n <= ranked.length; n++) {
+    const candidate = cleanLabel(ranked.slice(0,n).join(', '));
+    if (!avoid.has(candidate)) return candidate;
+  }
+  return cleanLabel(ranked.join(', '));
+}
+
+/** Sequentially resolve N coordinates to UNIQUE labels, in order — the same "extend on
+ *  collision" rule `coordinateLabel` implements, applied across a whole surface bank. */
+export function disambiguateCoordinateLabels(coords:ShadingCoordinate[]):string[] {
+  const used = new Set<string>();
+  return coords.map(c => { const l = coordinateLabel(c, used); used.add(l); return l; });
 }

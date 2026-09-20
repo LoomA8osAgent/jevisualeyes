@@ -35,7 +35,7 @@ import {loadConfig, effectiveProvider, effectiveKey} from '../server/config.js';
 import {providerFor} from '../server/provider.js';
 import {loadRosters} from '../core/rosters.js';
 import {shadingBankIds, shadingChildren, bankKnobs, bankExclusions, shadingGroup} from '../core/shading.js';
-import {stratifiedBankSlots, cleanLabel, spreadShadingCoordinates, coordinateLabel, coordinateLine,
+import {stratifiedBankSlots, disambiguateLabels, spreadShadingCoordinates, coordinateLabel, coordinateLine,
   newPartitionState, availableSlots, forcedSlot, commitPick, violatesConstraint, isDarkened} from '../core/shading-samplers.js';
 import {buildChildPickRequest, childPickQuestionId} from '../core/shading-requests.js';
 import {validateResponse} from '../core/validate.js';
@@ -118,8 +118,9 @@ for (const gid of children) {
   const {looks, coverage, minPairwiseDistance, duplicates} =
     stratifiedBankSlots(gid, rosters, SEED, SLOTS, OVERSAMPLE);
   childLooks[gid] = Object.fromEntries(looks.map((l, i) => [String(i+1), l]));
+  const names = disambiguateLabels(looks); // UNIQUE per bank — never the raw (possibly-colliding) l.label
   banksOut[gid] = {presets: Object.fromEntries(looks.map((l, i) => [
-    String(i+1), {name: cleanLabel(l.label), values:{params:l.params, bindings:{receivers:[],senders:[]}}}
+    String(i+1), {name: names[i], values:{params:l.params, bindings:{receivers:[],senders:[]}}}
   ]))};
   bankReport.push({bank:gid, label:g.label, knobs:knobs.length, coverage, minPairwiseDistance, duplicates,
     exclusions: bankExclusions(gid, rosters).length});
@@ -209,6 +210,7 @@ async function pickOneChild(surfaceSlot, coordinate, gid, chosenSoFar, extraExcl
   return chosenSlot;
 }
 
+const usedSurfaceLabels = new Set();
 for (let slotIdx = 1; slotIdx <= SLOTS; slotIdx++) {
   const coordinate = coords[slotIdx - 1];
   // Surface's own knobs for THIS look (already stratified, no partition/pick) seed
@@ -247,8 +249,10 @@ for (let slotIdx = 1; slotIdx <= SLOTS; slotIdx++) {
 
   const params = {...surfaceOwn.looks[slotIdx-1].params};
   for (const {gid, look} of chosenSoFar) Object.assign(params, look.params);
+  const surfaceLabel = coordinateLabel(coordinate, usedSurfaceLabels);
+  usedSurfaceLabels.add(surfaceLabel);
   presets[slotIdx] = {
-    name: coordinateLabel(coordinate),
+    name: surfaceLabel,
     values:{params, bindings:{receivers:[],senders:[]}, childSlots:vector},
     _coordinate: coordinate, _coordinateLine: coordinateLine(coordinate)
   };
