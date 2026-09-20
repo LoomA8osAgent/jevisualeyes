@@ -107,6 +107,32 @@ stating as status rather than leaving to be rediscovered:
 > individual slider presets."* · *"needs to also take into account all of the enums in the accordion
 > menus!"* · *"no marching is necessary for shading!"*
 
+**VALIDITY INCLUDES THE PICTURE — THE RENDER GATE (added 2026-09-20, after the first
+delivered set).** Operator, on the eleven looks this increment shipped: *"only TWO render on the
+object, everything else is black."* Measured on the resolver-picked subject, five of the eleven
+were pure black (`darkFrac 1.000`, `avgLuma 0`). Nothing could have caught it: the app-side macro
+asserts that a slot's VALUES reach the engine, which is a true statement about the preset walk and
+silent about the frame; and `shared.shading.constraints` answers enum COUPLING, which cannot reach
+a knob VALUE — a look with a fully opaque palette layer over a dim rig is black by arithmetic with
+every enum in it legal. So validity now has an eye, and it sits where validity lives (COMPOSER §1,
+the generator's property): `core/render-gate.ts` drives the A8os tool
+`app/tools/render-shading-look.js --stdio`, which composes the record through the app's own
+click-time path, renders one frame headless on the app's own GL factory and measures it with the
+app's own `tools/lib/frame-metrics.js` (decision-models.md §P2.9 layer 1). A candidate is VISIBLE
+iff — against the SAME subject rendered at its own defaults — `darkFrac ≤ 0.85`, the non-dark
+fraction (the lit object's footprint) is at least 25 % of the default's, and `avgLuma` is at least
+25 % of the default's, and the frame is not blown white. Every threshold is measured from the
+subject and printed in the artifact. The gate runs at three places: it filters the CANDIDATE POOL
+before stratification (so coverage and farthest-point spread are computed over survivors), it
+filters each MENU before Laya is asked (so an invisible option is never a choice), and it verifies
+each completed look — a look that stays black through its bank-level re-assemblies takes a
+different surface-own base, and a look with no base left FAILS THE RUN. `deliver:shading` then
+renders all 121 delivered slots and refuses the delivery if one is invisible. Where the coverage
+gate and the eye conflict, the run refuses BY NAME — the missing option and how many of its
+candidates rendered black — rather than shipping a black slot. Measured on the re-run: 222 of 934
+candidates rejected, 12 look re-assemblies, 121/121 delivered slots visible, and the eleven
+surface looks now measure `avgLuma` 9.8–68.4 against a default of 33.3.
+
 **Why this increment exists and why it comes before I7.** I7 bakes 495 records × 4 tags and is
 gated on the descriptor lift (§2 risk 1) and on the record→bank-key problem I5 measured. The
 shading stack has NEITHER blocker: it is emitted by the shared template rather than by a record,

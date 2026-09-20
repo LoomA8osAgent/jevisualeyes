@@ -256,11 +256,22 @@ export interface StratifiedBank {
  *  smaller than `slots` (never a forced-accept floor — the whole point is to STOP discovering
  *  duplicates by construction, not to tolerate near-duplicates past a threshold). Zero network
  *  calls — deterministic in (gid, seed), so a vitest test can assert coverage directly. */
+/** `opts.exclude` is the RENDER GATE's hand on the pool (decision-models.md §P2.10.6).
+ *  It is a filter on the CANDIDATE POOL and not a post-hoc drop of a selected slot,
+ *  because validity is the generator's property: a look the shader cannot light must
+ *  never have been a candidate, so coverage and farthest-point spread are computed over
+ *  the SURVIVING space and the bank still fills its eleven slots honestly. Absent, this
+ *  function is byte-identical to its pre-gate self. */
 export function stratifiedBankSlots(gid:string, rosters:Rosters, seed:number,
-                                    slots = 11, oversample = 500):StratifiedBank {
+                                    slots = 11, oversample = 500,
+                                    opts:{exclude?:(look:ShadingLook)=>boolean} = {}):StratifiedBank {
   const rows = menuRows(gid, rosters);
   const pool:ShadingLook[] = [];
-  for (let i = 0; i < oversample; i++) pool.push(sampleBankLook(gid, 0, i, seed, rosters));
+  for (let i = 0; i < oversample; i++) {
+    const cand = sampleBankLook(gid, 0, i, seed, rosters);
+    if (opts.exclude && opts.exclude(cand)) continue;
+    pool.push(cand);
+  }
 
   const sigOf = (look:ShadingLook) => hashJSON({params:look.params});
   const rowKey = (name:string, v:JsonValue) => `${name}=${JSON.stringify(v)}`;

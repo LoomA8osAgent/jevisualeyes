@@ -13,13 +13,26 @@
  *  Verifies the written file `require()`s clean and the bank/slot counts match the source
  *  artifact — a corrupted rewrite must fail LOUDLY, never ship silently.
  *
+ *  ── AND IT VERIFIES THE PICTURE (decision-models.md §P2.10.6, 2026-09-20) ────────────
+ *  A read-back check proves the FILE is intact and says nothing about what the slots do.
+ *  Operator, on the set this script delivered the first time: "only TWO render on the
+ *  object, everything else is black." So EVERY delivered slot — all 121 — is rendered
+ *  headless on the resolver-picked subject through `app/tools/render-shading-look.js`,
+ *  and a single invisible slot REFUSES THE DELIVERY. This is the last line: compose
+ *  filters candidates, this proves what actually landed.
+ *
+ *  A child-bank slot is rendered over the record's own defaults; a `surface` slot is a
+ *  whole look and is rendered as it is. Both are how the operator will meet them.
+ *
  *    node --run deliver:shading -- --in data/shading-compose-latest.json \
  *      --target /Users/exiledm4air/gits/visualeyes/app/js/formats/_sdf-factory-banks.js
+ *      [--no-render-check]  [--render-port 8098]
  */
 import {readFileSync, writeFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {join} from 'node:path';
 import {loadConfig} from '../server/config.js';
+import {RenderGate} from '../core/render-gate.js';
 
 const argv = process.argv.slice(2);
 const arg = (n,d) => { const i = argv.indexOf('--'+n); return i>=0 ? argv[i+1] : d; };
@@ -81,8 +94,44 @@ for (const gid of bankIds) {
 }
 if (problems.length) fail('read-back mismatch:\n  ' + problems.join('\n  '));
 
+// ── the picture check — every slot, on the real subject ──────────────────────────────
+let renderReport = {present:false, note:'--no-render-check'};
+if (!argv.includes('--no-render-check')) {
+  const gate = await RenderGate.open(cfg.appRoot,
+    {port: parseInt(arg('render-port','8098'),10)});
+  const black = [];
+  for (const gid of bankIds) {
+    const presets = artifact.banks[gid].presets ?? {};
+    for (const slot of Object.keys(presets).sort((a,b)=>Number(a)-Number(b))) {
+      const params = presets[slot]?.values?.params ?? {};
+      const v = await gate.check(`${gid}:${slot}`, params);
+      if (!v.visible) black.push({bank:gid, slot, name:presets[slot]?.name ?? null,
+        reason:v.reason, avgLuma:v.metrics?.avgLuma ?? null, darkFrac:v.metrics?.darkFrac ?? null});
+    }
+  }
+  renderReport = {
+    present:true, subject:gate.subject, thresholds:gate.thresholds,
+    defaultMetrics:gate.defaultMetrics, checked:gate.requests, black,
+    perSlot: gate.log.map(e => ({id:e.id, visible:e.visible, reason:e.reason,
+      avgLuma:e.avgLuma, darkFrac:e.darkFrac}))
+  };
+  await gate.close();
+  if (black.length) {
+    // The file on disk is already rewritten at this point — say so plainly rather than
+    // leaving a reader to wonder, and name every black slot so the next compose can be
+    // aimed rather than guessed at.
+    console.error(JSON.stringify({blackSlots:black}, null, 2));
+    fail(`${black.length} of ${gate.requests} delivered slot(s) render BLACK on ${gate.subject.label} — ` +
+      `the file at ${targetPath} was written but MUST NOT ship; re-compose (the black slots are listed above).`);
+  }
+}
+
 console.log(JSON.stringify({
   run:'deliver:shading', target: targetPath, source: inPath,
+  renderCheck: renderReport.present
+    ? {subject: renderReport.subject.label, checked: renderReport.checked, black: renderReport.black.length,
+       thresholds: renderReport.thresholds}
+    : renderReport,
   banks: bankIds.length,
   slotsPerBank: Object.fromEntries(bankIds.map(g => [g, Object.keys(artifact.banks[g].presets ?? {}).length])),
   bytesWritten: rewritten.length,
