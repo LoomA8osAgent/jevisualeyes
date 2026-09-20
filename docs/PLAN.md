@@ -26,7 +26,7 @@ provider never change. "Preset composer" names the first increment, not the dest
 | **I3** | **Record descriptor → candidate looks. Code only, no model.** The per-stack samplers: seeded, N complete looks per stack from a coordinate, each with a stable id and one readable line. Reads the shared rosters and the record's own inputs; transcribes none of them (`docs/COMPOSER.md` §9). | ONE node check on ONE record: every sampled value inside its knob's `[MIN, MAX]`, ids stable across runs at the same seed, descriptions non-empty, and the skipped set an EXACT match for the descriptor's non-composable knobs — falsified once by handing the guard a bound-violating look and requiring it to throw. | **LANDED** (`12b59a4`); **roster reads EXTENDED** — the two named-literal reads I3 shipped as a reported finding are replaced by a read of the app's own exported bundle, which also brings the easing library into the movement menu (below) |
 | **I4** | **The smallest end-to-end composer over I3.** The phase machine swapped: given tag → sample → motion Nouls → a bounded accept/resample per stack → assemble one snapshot. Reduced **by choice**, to prove the whole loop with the fewest moving parts — nothing is blocked. | ONE record, ONE tag, fixture provider, end to end → a composed snapshot on disk with its receipts, and a re-run from the stored responses at the same seed producing a **byte-identical** snapshot. | **LANDED** — `npm run compose:fixture` + `tests/compose.test.ts`: subject resolved (never named) to `aizawa-attractor-tube` at `motion:pulse density:busy contrast:hard warmth:cold order:regular depth:deep`, seed 1743, 2 fixture calls (motion Nouls, then the 6-stack looks bundle) → 9 receipts, snapshot `7aff5d6a0408ad40…`, replayed from the stored responses through `ReplayProvider` to the same sha256; the accept check and the resample cap each falsified once |
 | **I5** | **Receipts → provenance, and write through the consuming app's own path.** `generation.provenance` on the snapshot, the coverage-sweep row for that new field in the same commit, one provenance-chain append, and the write going out as the app's own preset-bank POST, read back and asserted identical. | The user-path macro `jev.composed-preset-loads`: Library → click the record → card delivered → open its preset row → recall the composed slot → params, active op sets and binds all arrive and `generation.provenance` survives the round trip. Fixture provider; assert the EFFECT, settle on content identity. | **LANDED** — `jev.composed-preset-loads` GREEN on an isolated clone (:8471): the resolver picked `assay-knot-tube`, the composed slot was found in the card's own hydrated bank BY ITS PROVENANCE, a real click recalled it, and the card came back with 4/4 unbound declared inputs exact, 2/2 ops live (0 invented, 0 declined), the one bind live as an oscillator receiver with its bracket in `card.ranges`, and `generation.provenance` carrying 11 receipts + 1 chain entry — then re-saved through the `+` dialog into slot 2 at the same `unitSha256` |
-| **I5.5** | **THE SHARED SHADING STACK — one composed look set that shades every model.** Not per-formula presets: the accordion the card labels SHADING (group `surface`) and exactly the children the code nests under it (`_groupParent: 'surface'` — color · palette · texture · material · lighting → light 1/2/3 · structure · edge) are emitted by the SHARED template, identical on every record, so ONE composed set is shipped through the app's existing factory-bank surface (`a8_sdf_factory_banks`) and every model inherits it at compose time with no rebake and no per-record bank key. Blend modes, bindings, per-slider presets and the marching accordion are OUT, each by a mechanical exclusion. | The user-path macro `jev.shading-factory-looks`: Library → click a model → the SHADING accordion's bank shows the composed top-level slots → recall one → the child banks are populated and a child recall CHANGES THE RENDER (pixel/effect, not display) → the same slots are present on a SECOND, unrelated model. Fixture provider, light tier. | planned |
+| **I5.5** | **THE SHARED SHADING STACK — one composed look set that shades every model.** Not per-formula presets: the accordion the card labels SHADING (group `surface`) and exactly the children the code nests under it (`_groupParent: 'surface'` — color · palette · texture · material · lighting → light 1/2/3 · structure · edge) are emitted by the SHARED template, identical on every record, so ONE composed set is shipped through the app's existing factory-bank surface (`a8_sdf_factory_banks`) and every model inherits it at compose time with no rebake and no per-record bank key. Blend modes, bindings, per-slider presets and the marching accordion are OUT, each by a mechanical exclusion. | The user-path macro `jev.shading-factory-looks`: Library → click a model → the SHADING accordion's bank shows the composed top-level slots → recall one → the child banks are populated and a child recall CHANGES THE RENDER (pixel/effect, not display) → the same slots are present on a SECOND, unrelated model. Fixture provider, light tier. | **composer side LANDED** (`core/shading.ts` + `core/shading-samplers.ts` + `core/shading-requests.ts` + `scripts/compose-shading.mjs` + `scripts/deliver-shading.mjs`); the app-side `jev.shading-factory-looks` macro is NOT run from this repo — out of routing, app-side proof pending |
 | **I6** | **Axes + N-way + CALL 3 — the full pipeline** (`docs/COMPOSER.md` §7): the eight axis Choices (`shape`/`mathops`/`shade`/`layers`/`fx`/`modulation`/`material`/`lighting` — the last two added by the material/lighting stacks, one axis each, no new axis-table growth), the N-way per-stack look pick, the waveform Choice and the rate Score, with CALL 1's sub-questions chunked at ≤ 6 per request. | I5's macro again, run against the local provider with the full pipeline — plus a capability leg: pointed at a provider whose export caps the option slot, the run **reports a capability refusal naming the cap** and neither crashes nor degrades silently. | planned |
 | **I7** | **Bake the corpus** — 495 records × 4 tags: the run, its concurrency, its resume, its report. | The run completes and the report **names every skipped record and why**; a spot sample of composed slots loads through I5's macro. | planned, gated on the sentence lift (§2 risk 1) |
 | **I8** | **The brick composer** — the menu widens to *which node goes in this slot*, and the answer composes a **new record** rather than a preset for an existing one. The model still writes no GLSL: it picks a node id from a closed set and the emitter writes the shader, which is the only reason a composer of shaders is expressible in a decision model at all. Output is emitted as ISF2 (<https://github.com/LoomA8osAgent/ISF2>) and appends its per-node receipts through the standard's own provenance call. | One composed tree, fixture provider → the emitted output passes the standard's validation and a compile, the tree's JS evaluator agrees with the marched field at a sample of points, the knob-derivation tool mints its inputs, and the record loads through the ordinary Library path. Falsified once by composing a tree whose conservative Lipschitz bound is out of range and asserting the enumerator **never offered it**. | blocked on two things, §1.1 |
@@ -320,6 +320,71 @@ known-good factory-bank path that `sdf.factory-wander-reveal` already proves.
 6. **Whether the factory entry ships in the repo** (`app-config/kv.json` committed) or is written
    by the composer run on a machine. Shipping it is what makes the looks arrive for a user who
    never runs the composer.
+
+**RULED, 2026-09-20 — reading A, full banks, the TRACKED SEED, not `kv.json`.** The operator's
+handoff for the run: *"full banks, can always pare"* (all 11 slots, every one of the 11 banks, in
+one pass) and the shipped-product framing from `_sdf-factory-banks.js`'s own header (*"i consider
+all of these 'base presets' to be the same as 'base sliders'/knobs ... it WILL be product"*) — so
+this run writes the app's TRACKED seed file, not the per-machine `kv.json` merge P2.10.5 names for
+an operator's own promote.
+
+**WHAT LANDED, composer side.** `core/rosters.ts` gains `shading` as a 5th `shared.*` shape (a
+group tree alongside the flat `RosterInput` list — the roster already carried `shared.shading` per
+the app's own `export-rosters.js`, this repo just was not reading it yet). `core/shading.ts` is the
+bank/knob-filtering half (`bankKnobs` applies the two mechanical exclusions — `excluded:'blend'` and
+`composable:false` — the same roster fields `decision-models.md` §P2.10.5 already flags, never a
+second filter list). `core/shading-samplers.ts` is the bank-shaped twin of `samplers.ts`: one
+complete draw of a bank's knobs per TYPE (float/long/bool/color, enum via `VALUES`), a readable
+Choice-question line (`describeDraw`, effect-name prefixed) and a short state-only slot label
+(`stateWord` + `cleanLabel` — the SINGLE strongest mover only, never a joined list: a joined list
+truncates mid-item and leaves a dangling separator, "color layer: off," measured in the first draft
+and closed by leading with what the draw actually did rather than what the knob does), plus
+`bankDistance`/`diverseEnough` — the operator's own instruction, *"enforce a minimum distance in
+code (sampler-side diversity), not by re-asking."* `core/shading-requests.ts` bundles ≤6 Choice
+questions per request (§7.1's rule) for both a bank's own 11-slot fill (`buildShadingRequest`) and
+the child-slot pick below (`buildChildPickRequest`).
+
+**`surface`'s eleven looks are COMPOSED, not diagonally copied — the second-draft fix.** The first
+draft gave every surface slot `childSlots = {every child: k}`, which is not a decision (the
+coordinator's own audit caught it: *"that is not a decision"*). The fix, per the audit's own spine:
+`spreadShadingCoordinates` (`shading-samplers.ts`) draws N DISTINCT coordinates off the four shading
+axes (`contrast`/`warmth`/`density`/`depth`, read from `axes.ts AXES` — never a second word list;
+81 combos for four 3-word axes, seed-shuffled), one per surface look, so the eleven looks differ BY
+CONSTRUCTION. For each look, `pickChildSlotsFor` asks Laya ONE Choice PER CHILD BANK — criteria
+keyed by the SLOT NUMBER itself (1–11) and described by that slot's own readable line, so the
+model's `choice` IS the chosen slot with nothing to misresolve — chunked ≤6/request (10 children →
+2 requests/look). The resulting `childSlots` vector is checked in code (`vectorSignature`) against
+every already-accepted vector; a collision draws the NEXT unused reserve coordinate and re-asks
+(measured: 5 of the first run's 11 looks collided and were re-asked against a reserve coordinate;
+the loop refuses loudly, never silently, past an 8-retry reserve). A surface slot's OWN ~12 knobs
+(the layer toggles) still ride the ordinary candidate-pool Choice every other bank uses — unrelated
+to which child slot lights. A surface look's LABEL is `coordinateLabel`: the two axis words whose
+position deviates most from the coordinate's own centre ("hard, warm"), not the look's own params —
+a coordinate is what the look TARGETED, and that reads better than a state word off one of its own
+(mostly-boolean) knobs.
+
+`scripts/compose-shading.mjs` fills the ten children first (askBank + diversify, unchanged), then
+`surface` (own-knob draw + the per-look coordinate/child-pick loop above), against the LOCAL
+provider (`von serve` on loopback, model responded `von-1.0.0`) — 69 requests, 296 receipts, 31.5s,
+11 banks × 11 slots, zero fixture, zero hand-tuning. `scripts/deliver-shading.mjs` rewrites ONLY the
+`var BANKS = { … };` literal in `_sdf-factory-banks.js` (brace-balanced, the same technique
+`rosters.ts readNamedLiteral` reads one with), verified by `require()`-ing the written file back and
+comparing slot counts — never a hand-edit of the generated region; the second run additionally
+verified all 121 labels non-empty/≤24-chars/no-trailing-punctuation and all 11 `childSlots` vectors
+pairwise distinct. `tests/fixtures/rosters.json` gained a two-input `shared.shading` stub so the
+existing "the bundle is READ" seam test keeps proving what it always proved; 84/84 green,
+`tsc --noEmit` clean.
+
+**WHAT DID NOT LAND HERE, and why.** The acceptance macro `jev.shading-factory-looks` (§1 table)
+drives the APP through the Library → card → accordion path on the app's own dev-server — this repo
+never drives `:8080` (routing) and never will; that leg is the consuming app's proof to run, against
+the file this run wrote. `sub:lighting`'s bank measured the diversity floor honestly rather than
+papering over it: only 3 bool knobs give 8 distinct states, so 11 slots forced 4 accepts below
+`MIN_SLOT_DISTANCE` after the retry cap — reported (`forcedAccepts`), never hidden. Several children
+(`sub:palette`, `sub:lighting`, `sub:light1`, `sub:light2`, `sub:structure`) picked the SAME slot
+number for most or all of the 11 surface looks even though their childSlots VECTOR is guaranteed
+distinct as a whole — the local model did not strongly discriminate on the axis wording per child
+bank; reported as measured, not smoothed over.
 
 ---
 

@@ -459,8 +459,16 @@
         "home": "card.scaleMode",
         "source": "app/js/formats/_scale-canon.js",
         "values": [
-          {"id": "stretch", "label": "stretch", "description": "fill 16:9 edge-to-edge (distorts non-16:9)"},
-          {"id": "fit", "label": "fit", "description": "letterbox — whole frame visible, bars"}
+          {
+            "id": "stretch",
+            "label": "stretch",
+            "description": "fill 16:9 edge-to-edge (distorts non-16:9)"
+          },
+          {
+            "id": "fit",
+            "label": "fit",
+            "description": "letterbox \u2014 whole frame visible, bars"
+          }
         ]
       },
       {
@@ -468,8 +476,14 @@
         "home": "card.sliderBlend / card.groupBlend",
         "source": "app/js/formats/_blend-canon.js",
         "values": [
-          {"id": "normal", "label": "normal"},
-          {"id": "add", "label": "add"}
+          {
+            "id": "normal",
+            "label": "normal"
+          },
+          {
+            "id": "add",
+            "label": "add"
+          }
         ]
       },
       {
@@ -477,8 +491,16 @@
         "home": "card.opActive.sdf",
         "source": "app/js/formats/_sdf-mathops.js",
         "values": [
-          {"id": "clifford", "label": "clifford", "description": "warps the xy of the march coordinate (sdf3d-shared.glsl §OPS)"},
-          {"id": "dejong", "label": "de jong", "description": "warps the xy of the march coordinate (sdf3d-shared.glsl §OPS)"}
+          {
+            "id": "clifford",
+            "label": "clifford",
+            "description": "warps the xy of the march coordinate (sdf3d-shared.glsl \u00a7OPS)"
+          },
+          {
+            "id": "dejong",
+            "label": "de jong",
+            "description": "warps the xy of the march coordinate (sdf3d-shared.glsl \u00a7OPS)"
+          }
         ]
       },
       {
@@ -486,10 +508,85 @@
         "home": "card.clock.source",
         "source": "app/js/formats/_clock-canon.js",
         "values": [
-          {"id": "internal", "label": "internal"},
-          {"id": "tap", "label": "tap"}
+          {
+            "id": "internal",
+            "label": "internal"
+          },
+          {
+            "id": "tap",
+            "label": "tap"
+          }
         ]
       }
-    ]
+    ],
+    "shading": {
+      "subject": {
+        "id": "fixture-shape",
+        "label": "Fixture Shape",
+        "route": "raymarch",
+        "file": "app/user-media/shapes/fixture.json"
+      },
+      "groups": [
+        {
+          "id": "surface",
+          "label": "shading",
+          "parent": null,
+          "parentDefault": null,
+          "inStack": null,
+          "toggle": null,
+          "kick": null,
+          "counts": {
+            "total": 1,
+            "menuRows": 1,
+            "enums": 0,
+            "menuBools": 1,
+            "excludedBlend": 0
+          }
+        },
+        {
+          "id": "sub:color",
+          "label": "color",
+          "parent": "surface",
+          "parentDefault": "surface",
+          "inStack": null,
+          "toggle": "surfLayerColor",
+          "kick": null,
+          "counts": {
+            "total": 1,
+            "menuRows": 0,
+            "enums": 0,
+            "menuBools": 0,
+            "excludedBlend": 0
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "NAME": "surfLayerColor",
+          "TYPE": "bool",
+          "LABEL": "color layer",
+          "DEFAULT": 0,
+          "_groupId": "surface",
+          "_groupLabel": "shading",
+          "DESCRIPTION": "whether the base colour is part of the paint at all \u2014 off, on",
+          "_menuOnly": true
+        },
+        {
+          "NAME": "baseColor",
+          "TYPE": "color",
+          "LABEL": "base color",
+          "DEFAULT": [
+            0.85,
+            0.55,
+            0.25,
+            1
+          ],
+          "_groupId": "sub:color",
+          "_groupLabel": "color",
+          "DESCRIPTION": "the single surface colour",
+          "_groupParent": "surface"
+        }
+      ]
+    }
   }
 }

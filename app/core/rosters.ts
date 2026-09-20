@@ -129,7 +129,54 @@ interface RosterArtifact {
      *  `sliderBlend`, `opActive.sdf`, `clock.source` today. A 4th `shared.*` shape, keyed by
      *  `key` at read time (see `loadRosters` `need('menus', …)` below). */
     menus?:MenuDescriptor[];
+    /** the SHARED SHADING ACCORDION and its ten children (`decision-models.md` §P2.10) —
+     *  template state, identical on every composed record, read off the emitted ISF header
+     *  rather than transcribed. A 5th `shared.*` shape: unlike the other rosters, this one
+     *  carries its own GROUP TREE alongside the flat input list, because the composer needs
+     *  to know which bank each knob belongs to and which bank nests under which. */
+    shading?:ShadingRoster;
   };
+}
+
+/** One accordion/bank in the SHADING tree, as `export-rosters.js shadingRoster()` emits it —
+ *  `parent` mirrors the app's own `_groupParent` form verbatim, including the value-aware
+ *  lamp object (`{param,map,default}`) for `sub:light1..3`. */
+export interface ShadingGroup {
+  id:string; label:string;
+  parent:string|{param:string;map:Record<string,string>;default:string}|null;
+  parentDefault:string|null;
+  inStack:string|null;
+  toggle:string|null;
+  kick:{param:string;to:number}|null;
+  counts:{total:number; menuRows:number; enums:number; menuBools:number; excludedBlend:number};
+}
+
+/** One knob in the shading tree — the same field set a `RosterInput` carries, plus the
+ *  three fields the composer cannot work without HERE: `_menuOnly` (a menu row is a
+ *  different surface from a body row), `_groupParent` (the accordion tree, verbatim), and
+ *  the two mechanical exclusions `excluded` / `composable`+`notComposableReason`
+ *  (`decision-models.md` §P2.10.5's three exclusions — blend, non-composable menu state;
+ *  bindings and per-slider presets are absent by construction, not by a flag). */
+export interface ShadingInput {
+  NAME:string; TYPE:string; LABEL:string; DEFAULT:unknown;
+  MIN?:number; MAX?:number; VALUES?:unknown[]; LABELS?:string[];
+  DESCRIPTION?:string;
+  _groupId:string; _groupLabel?:string;
+  _groupParent?:string|{param:string;map:Record<string,string>;default:string}|null;
+  _menuOnly?:boolean;
+  /** present only on the `*Blend`/`blendSource` name-shaped rows — mechanically excluded,
+   *  never drawn, never written into a composed look (§P2.10.5). */
+  excluded?:'blend';
+  /** `false` only on the two live-app-state rows (`structElemPalette`/`structGapPalette`);
+   *  absent/true otherwise. Mechanically excluded exactly like `excluded:'blend'`. */
+  composable?:boolean;
+  notComposableReason?:string;
+}
+
+export interface ShadingRoster {
+  subject:{id:string; label:string; route:string; file:string};
+  groups:ShadingGroup[];
+  inputs:ShadingInput[];
 }
 /** The literal auditor's role table — role key → [name prefix, the shared gloss]. */
 export interface RoleGloss { role:string; prefix:string; gloss:string }
@@ -198,6 +245,10 @@ export interface Rosters {
    *  `opActive.sdf`, `clock.source`). Read `composableMenuValues(rosters.menus[key])` for
    *  the value subset a sampler may draw — never `menu.values` directly (§8). */
   menus:Record<string,MenuDescriptor>;
+  /** the SHARED SHADING ACCORDION and its ten children (`decision-models.md` §P2.10) —
+   *  a group tree + the flat input list. Template state: identical on every record that
+   *  composes. `shading.groups[].id` is the bank key the factory surface uses. */
+  shading:ShadingRoster;
   /** the export's own provenance, or null when the bundle was unreadable (then `missing`
    *  names every roster that needed it). */
   provenance:RosterProvenance|null;
@@ -379,6 +430,17 @@ export function loadRosters(appRoot:string, artifactPath?:string):Rosters {
     return out;
   }, {} as Record<string,MenuDescriptor>);
 
+  // Mode 3 — the SHARED SHADING ACCORDION (`decision-models.md` §P2.10). Its own group
+  // tree travels WITH the flat input list, so `need` reads the whole `shared.shading`
+  // object rather than a single field.
+  const shading = need('shading', a => {
+    ok(Array.isArray(a.shared?.shading?.groups) && a.shared!.shading!.groups!.length > 0,
+      'the bundle carries no `shared.shading.groups` — the export is stale or has not run the shading reader yet');
+    ok(Array.isArray(a.shared?.shading?.inputs) && a.shared!.shading!.inputs!.length > 0,
+      'the bundle carries no `shared.shading.inputs` — the export is stale or the shading accordion moved');
+    return a.shared!.shading!;
+  }, {subject:{id:'',label:'',route:'',file:''}, groups:[], inputs:[]} as ShadingRoster);
+
   const provenance:RosterProvenance|null = bundle ? {
     generated:String(bundle.generated ?? ''), generator:String(bundle.generator ?? ''),
     artifactPath:artifact, sources:(bundle.sources ?? []).map(x => ({file:x.file, sha256:x.sha256}))
@@ -392,7 +454,7 @@ export function loadRosters(appRoot:string, artifactPath?:string):Rosters {
   const r:Rosters = {
     appRoot,
     ops:{all, injectedNames, injected:all.filter(o => injectedNames.includes(o.NAME))},
-    raymarchInputs, rmBase, layers, material, lighting, fx, waveforms, easings, menus,
+    raymarchInputs, rmBase, layers, material, lighting, fx, waveforms, easings, menus, shading,
     provenance, roles, missing
   };
   cache.set(cacheKey, r);

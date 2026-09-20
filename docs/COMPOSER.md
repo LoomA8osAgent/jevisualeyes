@@ -665,6 +665,17 @@ single shared-canon module the composer can read the way `_mesh-material.js` /
 `slices` (`_sdf-template.js`, the compound-SDF instancing lattice) read as card-family scoped
 rather than a capability every route shares, unlike material/lighting.
 
+**`color`/`sub:palette` are now a SHARED roster, but NOT through a `StackId` in this table**
+(`docs/PLAN.md` §1.0b I5.5). The SHADING accordion (`_groupParent:'surface'`, template state —
+identical on every record, not scattered per-engine) is `shared.shading` in `rosters.json` (a
+5th `shared.*` shape, `app/core/rosters.ts` `ShadingRoster` — a group tree alongside the flat
+input list) and its own bank/sampler/request modules (`app/core/shading.ts`,
+`shading-samplers.ts`, `shading-requests.ts`). It is a SEPARATE program, not a ninth `StackId`,
+because it composes the app's FACTORY bank surface (one look set shared by every record,
+`_sdf-factory-banks.js`) rather than one record's source-keyed slot — a `StackId` and its
+`CompositionDraft.stacks[id]` entry are record-scoped by construction (§7), and template state
+has no record to be scoped to. See `docs/PLAN.md` §1.0b for the full program.
+
 The table is the one in `app/core/records.ts:131` (`STACK_SOURCES`), which carries each
 roster's concrete source; the axis column is `STACK_AXES` (`app/core/axes.ts:73`). Each roster
 already declares the group id its controls live under, so the mapping is **read, not asserted** —
