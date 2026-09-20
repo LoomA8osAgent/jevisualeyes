@@ -21,10 +21,10 @@ writer for state the app owns.
 form of §8 are that standard's, not this repo's invention.
 
 Sections: **§1** the spine · **§2** the primitives and the wire · **§3** providers,
-engagement, fail-closed · **§4** validation and selection · **§5** receipts · **§6** axes and
-the user vocabulary · **§7** the pipeline · **§8** the descriptor requirement · **§9** the
-stacks and their rosters · **§10** locks and regenerate-unlocked · **§11** what the model is
-never asked · **§12** the versioned unit.
+engagement, fail-closed · **§4** validation and selection · **§5** receipts (**§5.1** the eye) ·
+**§6** axes and the user vocabulary · **§7** the pipeline · **§8** the descriptor requirement ·
+**§9** the stacks and their rosters · **§10** locks and regenerate-unlocked · **§11** what the
+model is never asked · **§12** the versioned unit.
 
 Measurement attribution: every number below marked *measured* was measured on the A8os corpus
 and on an Apple M4, 2026-09-19.
@@ -254,6 +254,48 @@ visible in the record. The receipts for one composition ride the composed artifa
 `generation.provenance` (`app/core/types.ts:114`) so they survive a save/recall round trip — a
 provenance field that vanishes on recall is the worst kind of hole — while the SQLite journal
 keeps the run's own copy (`app/server/db.ts:92`).
+
+**One more, ADDITIVE and OPTIONAL field rides the same shape**: each `stacks[stack]` entry may
+carry `lookVerdict:{receiptId, answers}` (`app/core/types.ts:109`) — the eye's own read of a
+rendered flow, when one exists. See §5.1.
+
+### §5.1 The eye — a rendered look's own report, read as text
+
+**"The stack has no eye. Decision models are text-in; the vision is another component."**
+(operator, 2026-09-20, ratified.) The eye is not built here. A sibling repository
+(`~/gits/visualeyes`) watches the consuming app's own render and writes two things into its
+watch receipt: a pure-arithmetic per-flow measurement (brightness, motion, rhythm, colour — no
+model, `tools/lib/frame-metrics.js` in that repo) and four decision-model answers about those
+NUMBERS as text (`has_motion`, `motion_feeling`, `look_changed`, `something_wrong` —
+`app/tools/_look-roster.js` / `tools/judgment/look-verdict.js` there). `core/look-verdict.ts`
+in **this** repo is what makes that receipt a typed input HERE:
+
+- **`readLookReceipt(json, path)`** validates the shape and FAILS CLOSED, exactly as a provider
+  response does (§3.2) — a receipt without `metricsSchema` predates the pipeline's own layer 1
+  and is refused rather than read as an empty summary (the pipeline's own rule, GATE-FAILS-OPEN
+  applied to a file read instead of a network call).
+- **`judgeAgainstCoordinate(receipt, coordinate, opts)` is a REPORT, NEVER AN ACTION** (§10 item
+  4: "deterministic edits never reach the model at all" — and neither does a report about one).
+  It compares what a stack's axis coordinate SAID against what the rendered flow MEASURED and
+  returns findings; it never resamples, relocks, or writes to a `CompositionDraft`. Finding
+  kinds: a motion-axis mismatch (coordinate `motion` vs the measured `has_motion`), a
+  bind-bracket check (`flicker.perSec` / `motion.max` against a declared modulation window), the
+  A/B leg (`look_changed` across two receipts — `VISIBLE-CONTROL-VISIBLE-EFFECT` asked rather
+  than asserted), and `something_wrong` surfaced verbatim.
+- **The motion coordinate is BARRED, permanently, from every reader of this seam** — not a
+  temporary caution. The sibling pipeline's own falsification (its §5): fed a hand-built state
+  describing a 100%-near-black, fully-frozen, hung flow, `motion_feeling` answered "steady" at
+  p 0.2443 — the SAME word a genuinely moving record answered at p 0.3355, near-uniform over
+  its seven options in both directions. **The seam is SENSITIVE and NOT CALIBRATED.** Every
+  `motion-feeling-barred` finding this module produces carries `barred:true` and that
+  measurement by name, and `judgeAgainstCoordinate` gives no caller a path to read it as
+  actionable. This lifts only if a future labeled set measures a real cut — a change to
+  `look-verdict.ts`'s own rule, never a caller working around it.
+- **The vocabulary is a cross-repo transcription with no cure at this layer**
+  (`SHARED-CANON-DUPLICATED-PER-ENGINE`). `_look-roster.js`'s seven motion-feeling keys are a
+  hand-copy of this repo's own `MOTION_FEELING` (`app/core/axes.ts`); `assertMotionKeys` in
+  `look-verdict.ts` checks a transcribed list against this repo's live keys and throws named on
+  drift — the check runnable from this side, since there is no import path from the other repo.
 
 ## §6 The axes, and the vocabulary the user speaks
 

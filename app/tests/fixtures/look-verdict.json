@@ -1,0 +1,57 @@
+{
+  "schema": "a8os.look-verdict.v1",
+  "rosterVersion": "look-roster-1",
+  "promptTemplateVersion": "look-1",
+  "metricsSchema": "a8os.frame-metrics.v1",
+  "provenance": {
+    "receipt": "f17be16fa04d.json",
+    "treeHash": "f17be16fa04d",
+    "backend": "browser",
+    "timestamp": "2026-09-20T01:36:38.141Z",
+    "flow": "video.look-verdict-smoke",
+    "ok": true,
+    "frames": 3,
+    "frameSha256": [
+      "9f0b2df984942f74d31ed42a8abafcdd9492dd8ba31219d7c13e4f0d7e616c7c",
+      "ca837d11ee49fd39692f7de18b433cabae22d77eb01d73d30a4dc081e27b4039",
+      "5ba43bdfa21ce0e50b4b0bd356c0b32e2d7996d3031a7527e7098d5338ab8df4"
+    ],
+    "sheet": {
+      "file": "frames/2026-09-20T01-36-30-2032/video.look-verdict-smoke-sheet.png",
+      "sha256": "6187ed0f6408fcd53433d7bc4334c59869052f946121670d04b85f3a585a27cf",
+      "cols": 4, "rows": 4, "cells": 3, "sampledFrom": 3, "cellW": 240, "cellH": 135
+    },
+    "vs": null
+  },
+  "metrics": {
+    "schema": "a8os.frame-metrics.v1",
+    "frames": 3,
+    "spanMs": 1615,
+    "luma": { "mean": 4.0333, "min": 1.6, "max": 8.9, "trendPerFrame": 3.65 },
+    "dark": { "mean": 0.8935, "max": 0.9395 },
+    "motion": { "mean": 3.7228, "max": 7.4371, "pairs": 2, "stillPairs": 1 },
+    "flicker": { "crossings": 1, "perSec": 0.6192 },
+    "color": {
+      "satMean": 0.5946, "colorFrac": 0.1023,
+      "hue12": [0.004, 0.0058, 0, 0, 0.0032, 0.0001, 0.0136, 0.0757, 0, 0, 0, 0],
+      "dominant": { "bin": 7, "name": "azure", "degrees": 210, "frac": 0.7393 },
+      "spreadBins": 3
+    },
+    "rafMaxGap": 133,
+    "thresholds": { "darkLuma": 6, "stillEps": 0.5, "colorValueMin": 16, "colorSatMin": 0.15, "rasterW": 192, "rasterH": 108 }
+  },
+  "state": "WHAT THE CAMERA SAW — 3 frames over 1.6s\nBRIGHTNESS: 4.0333 out of 255 on average, getting brighter · 89% of the picture is near-black\nMOVEMENT: the picture changes by 3.7228 out of 255 between frames on average, at most 7.4371 · 1 of 2 frame pairs are identical\nRHYTHM: the amount of movement crosses its own average 1 times in 1.6s (0.6192 times a second)\nCOLOUR: 10% of the picture carries colour, mostly azure, spread over 3 of 12 hues\nDRAWING: the longest pause between drawn frames was 133ms",
+  "pairState": null,
+  "providerId": "reference",
+  "model": "von-1.0.0",
+  "usage": { "input_tokens": 190, "output_tokens": 4 },
+  "latencyMs": 323,
+  "answers": {
+    "has_motion": { "value": 0.7094, "flagged": false, "answered": true, "findingAt": "low", "word": "ok" },
+    "motion_feeling": { "word": "steady", "p": 0.3355, "confidence": 0.0710, "answered": true, "certain": false,
+      "distribution": { "held": 0.1297, "drifting": 0.13, "easing": 0.13, "springy": 0.13, "bouncy": 0.13, "snappy": 0.13, "steady": 0.3355 } },
+    "something_wrong": { "value": 0.2444, "flagged": false, "answered": true, "findingAt": "high", "word": "ok" }
+  },
+  "advisory": true,
+  "bands": { "advise": 0.5, "choiceAt": 0.5, "calibrated": false }
+}

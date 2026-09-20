@@ -133,6 +133,17 @@ of legal trees. Until the enumerator is derived from the walkers, I8 has no menu
 a hand-written catalog beside the walkers would drift from them on the first node added, which
 is why "derived from" is the requirement rather than "matching".
 
+### The eye — landed as a typed input, not yet read by any increment
+
+`core/look-verdict.ts` (2026-09-20) is the composer's read of the video verdict pipeline that
+landed in the sibling `~/gits/visualeyes` repo the same day (`docs/COMPOSER.md` §5.1;
+`agent-reports/video-pipeline-v1.md` in that repo). It touches **I5** — the receipt/provenance
+increment, whose `CompositionDraft.stacks[stack].lookVerdict` field this adds as an OPTIONAL,
+ADDITIVE carrier — and it is a REPORT-ONLY seam: nothing in I4 through I7 writes that field or
+reads `judgeAgainstCoordinate`'s output yet. It is here so I5/I6 have a typed target to write
+into when a bake starts watching its own rendered output, not because either increment consumes
+it today.
+
 **And one smaller risk, recorded so it is not discovered at I7:** the bake writes to the
 consuming app's preset-bank endpoint, which is last-write-wins over the whole bank body, while
 the operator may have the app open on the same source. A bake run and a live card saving the

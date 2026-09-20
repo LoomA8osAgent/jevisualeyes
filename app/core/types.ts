@@ -105,8 +105,14 @@ export interface CompositionDraft {
   recordId:string; tag:string;
   /** stack id → its axis coordinate. */
   coordinate:Partial<Record<StackId,AxisCoordinate>>;
-  /** stack id → the committed look. */
-  stacks:Partial<Record<StackId,{lookId:string;params:Record<string,JsonValue>}>>;
+  /** stack id → the committed look. `lookVerdict` is ADDITIVE and OPTIONAL — the eye's own
+   *  read of a rendered flow (`docs/COMPOSER.md` §5.1, `core/look-verdict.ts`). It rides the
+   *  same clone-verbatim `params` path every other field here already uses (§9.1's own
+   *  precedent), never a second write, and it is a REPORT: nothing that reads it may resample,
+   *  relock, or otherwise act on it (§10 item 4). Absent on every draft until something writes
+   *  it — no consumer here does yet. */
+  stacks:Partial<Record<StackId,{lookId:string;params:Record<string,JsonValue>;
+    lookVerdict?:{receiptId:string; answers:import('./look-verdict.js').LookAnswers}}>>;
   /** param name → its committed motion. */
   motion:Record<string,MotionState>;
   generation:{
